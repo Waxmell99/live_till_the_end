@@ -1,0 +1,213 @@
+export type StatKey = 'health' | 'morale' | 'stress' | 'hunger' | 'fatigue';
+
+export interface Stats {
+  health: number;
+  morale: number;
+  stress: number;
+  hunger: number;
+  fatigue: number;
+}
+
+export interface CharacterProfile {
+  name: string;
+  age: number;
+  nationality: 'British';
+  occupation: string;
+  hometown: string;
+  family: string;
+  enlisted: string;
+  birthYear: number;
+}
+
+export type NpcStatus = 'active' | 'wounded' | 'dead' | 'transferred' | 'captured';
+
+export interface NpcDefinition {
+  id: string;
+  name: string;
+  age: number;
+  role: string;
+  hometown: string;
+  background: string;
+  temperament: string;
+  keepsake: string;
+  initials: string;
+}
+
+export interface NpcState {
+  id: string;
+  relationship: number;
+  status: NpcStatus;
+  statusDate?: string;
+  epitaph?: string;
+}
+
+export type EventKind = 'routine' | 'combat' | 'relationship' | 'survival' | 'letter' | 'historical';
+
+export interface EventRequirements {
+  from?: string;
+  until?: string;
+  minStats?: Partial<Stats>;
+  maxStats?: Partial<Stats>;
+  flagsAll?: string[];
+  flagsNone?: string[];
+  itemsAll?: string[];
+  npcActive?: string;
+  historyTriggered?: string;
+}
+
+export interface TimeAdvance {
+  min: number;
+  max: number;
+  unit: 'minutes' | 'hours' | 'days';
+}
+
+export interface ChoiceEffects {
+  stats?: Partial<Stats>;
+  relationships?: Record<string, number>;
+  addItems?: string[];
+  removeItems?: string[];
+  addFlags?: string[];
+  removeFlags?: string[];
+  receiveLetter?: string;
+}
+
+export interface ChoiceRisk {
+  /** Probability that something happens before contextual modifiers. */
+  danger: number;
+  fatality?: number;
+  capture?: number;
+  npcDanger?: number;
+  healthLoss?: [number, number];
+  cause: string;
+  mitigationItem?: string;
+}
+
+export interface EventChoice {
+  id: string;
+  label: string;
+  detail: string;
+  posture: 'bold' | 'careful' | 'social' | 'rest' | 'duty';
+  requirements?: EventRequirements;
+  effects?: ChoiceEffects;
+  risk?: ChoiceRisk;
+  advance: TimeAdvance;
+  outcome: string;
+}
+
+export interface GameEvent {
+  id: string;
+  kind: EventKind;
+  title: string;
+  kicker: string;
+  text: string[];
+  source: 'fictional' | 'historical';
+  weight: number;
+  requirements?: EventRequirements;
+  choices: EventChoice[];
+  tags?: string[];
+  focusNpcId?: string;
+  historyId?: string;
+}
+
+export interface HistoricalRecord {
+  id: string;
+  at: string;
+  end?: string;
+  title: string;
+  shortTitle: string;
+  location?: string;
+  summary: string;
+  archive: string;
+  effects?: Partial<Stats>;
+  campaign?: string;
+}
+
+export interface LetterDefinition {
+  id: string;
+  from: string;
+  subject: string;
+  body: string[];
+  replyOptions: Array<{
+    id: string;
+    label: string;
+    tone: string;
+    effects: Partial<Stats>;
+  }>;
+}
+
+export interface LetterState {
+  id: string;
+  receivedAt: string;
+  saved: boolean;
+  repliedWith?: string;
+}
+
+export interface JournalEntry {
+  id: string;
+  date: string;
+  title: string;
+  body: string;
+  category: EventKind | 'personnel' | 'ending';
+}
+
+export type EndingType = 'killed' | 'wounds' | 'invalided' | 'pow' | 'survived';
+
+export interface Ending {
+  type: EndingType;
+  date: string;
+  cause: string;
+  finalEvent: string;
+  postwar?: string[];
+}
+
+export type GameStatus = 'playing' | 'ended';
+
+export interface GameState {
+  version: 1;
+  seed: number;
+  rngState: number;
+  status: GameStatus;
+  turn: number;
+  startedAt: string;
+  currentDate: string;
+  character: CharacterProfile;
+  stats: Stats;
+  /** Kept out of the visible UI. */
+  luck: number;
+  location: string;
+  weather: string;
+  currentEventId: string;
+  recentEventIds: string[];
+  pendingHistoryIds: string[];
+  triggeredHistoryIds: string[];
+  campaigns: string[];
+  npcs: NpcState[];
+  inventory: string[];
+  flags: string[];
+  letters: LetterState[];
+  journal: JournalEntry[];
+  lastResolution: string[];
+  ending?: Ending;
+  updatedAt: string;
+}
+
+export interface CharacterInput {
+  name: string;
+  age: number;
+  occupation: string;
+  hometown: string;
+  family: string;
+  enlisted: string;
+}
+
+export interface SimulationSummary {
+  runs: number;
+  survived: number;
+  killed: number;
+  wounds: number;
+  invalided: number;
+  pow: number;
+  stalled: number;
+  averageTurns: number;
+  averageDays: number;
+}
