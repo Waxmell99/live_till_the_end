@@ -35,14 +35,26 @@ export function parseGame(raw: string): GameState | null {
 }
 
 export function saveGame(state: GameState, storage: StorageLike = window.localStorage): void {
-  storage.setItem(SAVE_KEY, serializeGame(state));
+  try {
+    storage.setItem(SAVE_KEY, serializeGame(state));
+  } catch {
+    // Storage may be disabled by the browser. The active session still remains playable.
+  }
 }
 
 export function loadGame(storage: StorageLike = window.localStorage): GameState | null {
-  const raw = storage.getItem(SAVE_KEY);
-  return raw ? parseGame(raw) : null;
+  try {
+    const raw = storage.getItem(SAVE_KEY);
+    return raw ? parseGame(raw) : null;
+  } catch {
+    return null;
+  }
 }
 
 export function clearSave(storage: StorageLike = window.localStorage): void {
-  storage.removeItem(SAVE_KEY);
+  try {
+    storage.removeItem(SAVE_KEY);
+  } catch {
+    // Nothing else is required when storage is unavailable.
+  }
 }

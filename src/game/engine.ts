@@ -180,8 +180,10 @@ function elapsedDays(from: string, to: string): number {
 function applyTimePressure(state: GameState, from: string, to: string, event: GameEvent): void {
   const days = elapsedDays(from, to);
   if (days <= 0) return;
-  const hungerGain = Math.min(7, days * (event.tags?.includes('food') ? 0.15 : 0.42));
-  const fatigueGain = Math.min(6, days * (event.tags?.includes('rest') ? -0.25 : 0.2));
+  // A turn spanning days also implies ordinary issued meals and fragments of sleep.
+  // These are slow background pressures; explicit event choices create the sharp changes.
+  const hungerGain = Math.min(2.5, days * (event.tags?.includes('food') ? -0.08 : 0.06));
+  const fatigueGain = Math.min(2.5, days * (event.tags?.includes('rest') ? -0.22 : 0.035));
   state.stats = applyStatEffects(state.stats, {
     hunger: hungerGain,
     fatigue: fatigueGain,
@@ -476,11 +478,13 @@ export function resolveChoice(input: GameState, choiceId: string): GameState {
     state.pendingHistoryIds = state.pendingHistoryIds.filter((id) => id !== event.historyId);
   }
 
-  state.currentDate = event.id === 'last-morning-fire'
-    ? ARMISTICE_DATE
+  const isFinalHourEvent = event.id === 'last-morning-fire';
+  state.currentDate = isFinalHourEvent
+    ? '1918-11-11T10:58:00.000Z'
     : advanceGameTime(state.currentDate, choice.advance, rng);
   applyTimePressure(state, previousDate, state.currentDate, event);
   resolveRisk(state, choice, rng, messages);
+  if (isFinalHourEvent && state.status === 'playing') state.currentDate = ARMISTICE_DATE;
   if (state.status === 'playing') maybeRecoverNpc(state, rng, messages);
   triggerHistory(state, previousDate, state.currentDate);
 
