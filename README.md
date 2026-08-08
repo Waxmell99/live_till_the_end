@@ -15,6 +15,8 @@ npm run dev
 
 Open the local address printed by Vite. No API key, account, database, or network connection is needed after dependencies are installed.
 
+The complete interface and authored narrative are available in English and Simplified Chinese. Use **EN / 中文** on the opening screen, character record, field diary, or ending screen; the preference is remembered in the browser and can be changed without restarting a life.
+
 Production and verification commands:
 
 ```bash
@@ -28,7 +30,7 @@ Pass a smaller or larger simulation count with `npm run simulate -- 250`. An opt
 
 ## How to play
 
-1. Begin another life and create or generate a service record.
+1. Choose **EN** or **中文**, then begin another life and create or generate a service record.
 2. Read the current scene and choose one response. Every available choice works; none is guaranteed safe.
 3. Watch health and morale. High stress, hunger, and fatigue are dangerous.
 4. Open the section roll, war diary, letters, and archive as the months pass.
@@ -39,6 +41,7 @@ The game autosaves after character creation and every choice. `Continue` restore
 ## What is implemented
 
 - Opening sequence, character generation, seeded challenge runs, and one complete British route.
+- Complete English and Simplified Chinese presentation for UI, events, choices, outcomes, diaries, letters, comrades, history, and endings, with a persistent in-game language switcher.
 - Dynamic time: ordinary events jump days; dangerous actions advance hours or minutes.
 - 63 routine/survival events, 16 combat events, 10 personal NPC events, 10 letters, and 12 fixed historical records.
 - Health, morale, stress, hunger, fatigue, hidden luck, equipment, weather, and contextual danger.
@@ -72,6 +75,7 @@ src/
 ├── data/            historical records, letters, NPCs, event catalogues
 ├── game/            types, PRNG, engine, saves, simulation, presentation
 ├── hooks/           optional procedural ambience
+├── i18n/            UI dictionaries and complete Chinese authored-content pack
 └── styles/          archive-inspired responsive visual system
 scripts/
 └── simulate.ts      balance runner using the real game rules
@@ -81,7 +85,7 @@ docs/
 └── screenshots/     release screenshot location
 ```
 
-The engine does not import React. Tests and the simulator exercise the same `resolveChoice` path used by the UI.
+The engine does not import React. English authored text remains the canonical saved representation, while localization happens in the presentation layer; changing language therefore cannot change a seed, roll, event result, or saved life. Tests and the simulator exercise the same `resolveChoice` path used by the UI.
 
 ## AI layer
 

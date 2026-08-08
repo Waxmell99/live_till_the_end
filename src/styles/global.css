@@ -125,6 +125,46 @@ input:focus-visible {
   text-transform: uppercase;
 }
 
+.lang-zh {
+  font-family: 'Noto Serif CJK SC', 'Songti SC', SimSun, Georgia, serif;
+}
+
+.language-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  color: rgba(228, 223, 203, 0.42);
+  font: 700 0.66rem var(--mono);
+  letter-spacing: 0.08em;
+}
+
+.language-switcher button {
+  padding: 0.35rem 0.2rem;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  background: transparent;
+}
+
+.language-switcher button:hover,
+.language-switcher button.active {
+  color: #e4dfcb;
+}
+
+.language-switcher button.active {
+  text-decoration: underline;
+  text-decoration-color: #968e65;
+  text-underline-offset: 4px;
+}
+
+.intro-language {
+  position: fixed;
+  z-index: 6;
+  top: 1.5rem;
+  left: 1.7rem;
+}
+
 /* Opening sequence */
 
 .intro-screen {
@@ -272,11 +312,25 @@ input:focus-visible {
   text-shadow: 0 3px 30px #000;
 }
 
+.lang-zh .title-card h1 {
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+}
+
+.lang-zh .intro-line-five {
+  letter-spacing: 0.35em;
+}
+
 .title-chinese {
   margin: 1.4rem 0 2rem;
   color: #a29d83;
   font-size: 1rem;
   letter-spacing: 0.58em;
+}
+
+.lang-zh .title-chinese {
+  font: 0.68rem var(--mono);
+  letter-spacing: 0.18em;
 }
 
 .title-rule {
@@ -375,6 +429,18 @@ input:focus-visible {
   font: 0.64rem var(--mono);
   letter-spacing: 0.11em;
   text-transform: uppercase;
+}
+
+.file-header > .language-switcher {
+  position: absolute;
+  right: 0;
+  top: 1.4rem;
+  color: rgba(37, 37, 31, 0.48);
+}
+
+.file-header > .language-switcher button:hover,
+.file-header > .language-switcher button.active {
+  color: var(--ink);
 }
 
 .text-button {
@@ -557,6 +623,18 @@ input:focus-visible {
   display: flex;
   justify-content: flex-end;
   gap: 0.35rem;
+}
+
+.header-actions > .language-switcher {
+  margin-right: 0.35rem;
+  color: #797661;
+}
+
+.header-actions > .language-switcher button {
+  min-height: auto;
+  padding: 0.35rem 0.12rem;
+  border: 0;
+  letter-spacing: 0.03em;
 }
 
 .header-actions button {
@@ -1563,13 +1641,13 @@ input:focus-visible {
   background: transparent;
 }
 
-.letter-saved::after {
+.kept-stamp {
   float: right;
-  margin-top: -1.5rem;
+  margin-top: 0.15rem;
   color: rgba(116, 48, 39, 0.65);
-  content: 'KEPT';
   font: 700 0.65rem var(--mono);
   letter-spacing: 0.12em;
+  text-transform: uppercase;
   transform: rotate(-4deg);
 }
 
@@ -1683,6 +1761,13 @@ input:focus-visible {
   color: #ded8c3;
   background:
     radial-gradient(ellipse at 50% 35%, #25251f, #11110e 65%, #080807);
+}
+
+.end-language {
+  position: fixed;
+  z-index: 6;
+  top: 1.5rem;
+  left: 1.7rem;
 }
 
 .ending-killed,
@@ -2060,7 +2145,7 @@ input:focus-visible {
     margin-top: 5rem;
   }
 
-  .header-actions button:first-child {
+  .header-actions > button[aria-pressed] {
     display: none;
   }
 

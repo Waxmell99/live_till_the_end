@@ -5,10 +5,11 @@ import { IntroScreen } from './components/IntroScreen';
 import { createNewGame } from './game/engine';
 import { clearSave, loadGame, saveGame } from './game/save';
 import type { CharacterInput, GameState } from './game/types';
+import { LanguageProvider } from './i18n';
 
 type View = 'intro' | 'create' | 'game';
 
-export default function App() {
+function GameApp() {
   const [savedGame, setSavedGame] = useState<GameState | null>(() => loadGame());
   const [game, setGame] = useState<GameState | null>(null);
   const [view, setView] = useState<View>('intro');
@@ -56,4 +57,8 @@ export default function App() {
 
   if (!game) return null;
   return <GameScreen state={game} onStateChange={setGame} onAnotherLife={anotherLife} />;
+}
+
+export default function App() {
+  return <LanguageProvider><GameApp /></LanguageProvider>;
 }

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useLanguage } from '../i18n';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface IntroScreenProps {
   hasSave: boolean;
@@ -9,37 +11,39 @@ interface IntroScreenProps {
 
 export function IntroScreen({ hasSave, savedName, onContinue, onNewGame }: IntroScreenProps) {
   const [skipped, setSkipped] = useState(false);
+  const { language, t } = useLanguage();
 
   return (
-    <main className={`intro-screen ${skipped ? 'intro-skipped' : ''}`}>
+    <main className={`intro-screen ${skipped ? 'intro-skipped' : ''} lang-${language}`}>
       <div className="intro-grain" aria-hidden="true" />
+      <div className="intro-language"><LanguageSwitcher /></div>
       <button className="intro-skip" type="button" onClick={() => setSkipped(true)}>
-        Skip introduction
+        {t('intro.skip')}
       </button>
-      <div className="intro-sequence" aria-label="1917. The war has already lasted three years. Millions are dead. You do not know when it will end. Stay alive.">
-        <p className="intro-line intro-line-one">1917.</p>
-        <p className="intro-line intro-line-two">The war has already lasted three years.</p>
-        <p className="intro-line intro-line-three">Millions are dead.</p>
-        <p className="intro-line intro-line-four">You do not know when it will end.</p>
-        <p className="intro-line intro-line-five">Stay alive.</p>
+      <div className="intro-sequence" aria-label={t('intro.aria')}>
+        <p className="intro-line intro-line-one">{t('intro.year')}</p>
+        <p className="intro-line intro-line-two">{t('intro.threeYears')}</p>
+        <p className="intro-line intro-line-three">{t('intro.millions')}</p>
+        <p className="intro-line intro-line-four">{t('intro.unknown')}</p>
+        <p className="intro-line intro-line-five">{t('intro.survive')}</p>
       </div>
       <section className="title-card">
-        <p className="eyebrow">An ordinary life on the Western Front</p>
-        <h1>Survive Until<br />the War Ends</h1>
-        <p className="title-chinese">活到战争结束</p>
+        <p className="eyebrow">{t('intro.eyebrow')}</p>
+        <h1>{t('intro.title.1')}<br />{t('intro.title.2')}</h1>
+        <p className="title-chinese">{t('intro.chineseTitle')}</p>
         <div className="title-rule"><span>1917</span><i /><span>1918</span></div>
-        <p className="title-deck">You will not command armies. You will not change history.<br />Your task is to live through it.</p>
+        <p className="title-deck">{t('intro.deck.1')}<br />{t('intro.deck.2')}</p>
         <div className="title-actions">
           {hasSave && (
             <button className="button button-primary" type="button" onClick={onContinue}>
-              Continue {savedName ? `${savedName}’s life` : 'saved life'}
+              {savedName ? t('intro.continue', { name: savedName }) : t('intro.continueGeneric')}
             </button>
           )}
           <button className={`button ${hasSave ? 'button-ghost' : 'button-primary'}`} type="button" onClick={onNewGame}>
-            Begin another life
+            {t('intro.new')}
           </button>
         </div>
-        {hasSave && <p className="autosave-note">A field record was found in this browser.</p>}
+        {hasSave && <p className="autosave-note">{t('intro.saveFound')}</p>}
       </section>
     </main>
   );

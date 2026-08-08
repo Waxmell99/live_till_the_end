@@ -148,6 +148,11 @@ export interface JournalEntry {
   title: string;
   body: string;
   category: EventKind | 'personnel' | 'ending';
+  eventId?: string;
+  choiceId?: string;
+  historyId?: string;
+  npcId?: string;
+  endingType?: EndingType;
 }
 
 export type EndingType = 'killed' | 'wounds' | 'invalided' | 'pow' | 'survived';

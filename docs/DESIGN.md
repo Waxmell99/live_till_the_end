@@ -28,6 +28,10 @@ Curated timeline records have fixed dates, short factual summaries, locations, a
 
 The full serializable `GameState` is written to `localStorage` after character creation and every resolved turn. Saves have a schema version and are validated before use. A corrupt or incompatible save is rejected without crashing, and starting another life replaces it only after confirmation.
 
+## Localization
+
+The complete game supports English and Simplified Chinese. A typed UI dictionary covers interface chrome, while ID-keyed content dictionaries cover events, choices, outcomes, letters, NPCs, history, diary entries, and endings. English remains the engine's canonical authored and saved representation. Journal entries retain event, choice, history, NPC, and ending IDs so either language can be reconstructed without migrating old saves or touching the PRNG. Language is a separate browser preference and can be changed during play.
+
 ## Endings
 
 The engine supports killed in action, death from wounds or illness, invalided home, prisoner of war, and survival to the armistice. The armistice is clamped to exactly 11:00 and receives a quiet final sequence. Endings preserve the diary, relationships, campaign list, and final incident.

@@ -5,6 +5,7 @@
 The project is a complete, locally runnable browser game with a continuous route from **Begin another life** to death, captivity, invaliding, or the armistice.
 
 - Timed black-screen opening and clear onboarding.
+- Complete English and Simplified Chinese UI and authored content, with live switching and a remembered browser preference.
 - Editable and seeded British character creation with generated alternatives.
 - Dynamic calendar from 12 February 1917 to exactly 11:00 on 11 November 1918.
 - 63 routine/survival events, 16 combat events, 10 NPC events, 10 letters, and 12 historical records.
@@ -37,7 +38,10 @@ event / history / NPC data → pure game engine → serializable GameState
 - `src/game/save.ts` owns schema validation and browser persistence.
 - `src/game/simulation.ts` plays the same rules without React.
 - `src/components/` renders state and sends choice IDs back to the engine.
+- `src/i18n/` contains typed UI dictionaries and the complete Chinese event, history, NPC, letter, diary, and ending presentation pack.
 - `src/styles/global.css` contains the responsive visual language without an external asset dependency.
+
+Localization is display-only: canonical engine data and saves remain in English, and stable IDs reconnect journal entries to localized prose. Switching language cannot consume randomness, change a choice, or alter deterministic replay.
 
 ## Game systems
 
@@ -76,7 +80,7 @@ No API is required or called. Version 1 uses authored local prose, so installati
 Final verification commands:
 
 ```text
-npm test       5 files passed, 21 tests passed
+npm test       6 files passed, 26 tests passed
 npm run build  TypeScript passed, Vite production build passed
 ```
 
@@ -93,9 +97,11 @@ Coverage by behaviour includes:
 - Content-count acceptance checks.
 - Complete automatic games without stalls.
 - jsdom click-through: title → creation → first choice → autosave → diary, with no console errors.
+- jsdom Chinese click-through, language persistence across remounts, and unchanged canonical save data.
+- Translation coverage for all 111 events and their choices, plus all letters, comrades, historical records, journal outcomes, and risk causes.
 - Local Vite HTTP response and production bundle generation.
 
-Production output at final verification was approximately 0.60 kB HTML, 30.76 kB CSS (7.75 kB gzip), and 308.37 kB JavaScript (98.31 kB gzip).
+Production output at final verification was approximately 0.60 kB HTML, 31.97 kB CSS (8.00 kB gzip), and 382.69 kB JavaScript (132.79 kB gzip).
 
 ## Auto Simulation results
 

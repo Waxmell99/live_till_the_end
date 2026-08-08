@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react';
 import { seedFromText } from '../game/random';
 import type { CharacterInput } from '../game/types';
+import { useLanguage } from '../i18n';
+import { localizeProfileValue } from '../i18n/content';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface CharacterCreationProps {
   onBegin: (profile: CharacterInput, seed: number) => void;
@@ -28,6 +31,7 @@ function pick<T>(items: T[], seed: number, offset: number): T {
 }
 
 export function CharacterCreation({ onBegin, onBack }: CharacterCreationProps) {
+  const { language, t } = useLanguage();
   const initialSeed = useMemo(() => Math.floor(Date.now() % 2_147_483_647), []);
   const [profile, setProfile] = useState<CharacterInput>(DEFAULT_PROFILE);
   const [seed, setSeed] = useState(initialSeed);
@@ -52,59 +56,60 @@ export function CharacterCreation({ onBegin, onBack }: CharacterCreationProps) {
   const valid = profile.name.trim().length >= 2 && profile.hometown.trim().length >= 2 && profile.occupation.trim().length >= 2;
 
   return (
-    <main className="creation-screen">
-      <div className="creation-backdrop" aria-hidden="true"><span>WESTERN FRONT</span><span>FIELD RECORD · 1917</span></div>
+    <main className={`creation-screen lang-${language}`}>
+      <div className="creation-backdrop" aria-hidden="true"><span>{t('creation.backdropFront')}</span><span>{t('creation.backdropRecord')}</span></div>
       <section className="enlistment-file">
         <header className="file-header">
-          <button className="text-button" type="button" onClick={onBack}>← Return</button>
-          <div className="file-stamp">B.E.F.<br />ACTIVE SERVICE</div>
-          <p>Army Form B. 2067</p>
+          <button className="text-button" type="button" onClick={onBack}>← {t('creation.back')}</button>
+          <div className="file-stamp">{t('creation.stamp').split('\n').map((line) => <span key={line}>{line}<br /></span>)}</div>
+          <p>{t('creation.formNumber')}</p>
+          <LanguageSwitcher compact />
         </header>
         <div className="file-title">
-          <p className="eyebrow">Record of a single life</p>
-          <h1>Who were you before the war?</h1>
-          <p>These details shape the record, not your combat strength. Nationality is British in this first route.</p>
+          <p className="eyebrow">{t('creation.eyebrow')}</p>
+          <h1>{t('creation.title')}</h1>
+          <p>{t('creation.help')}</p>
         </div>
         <form className="character-form" onSubmit={(event) => { event.preventDefault(); if (valid) onBegin(profile, seed); }}>
           <label className="field field-wide">
-            <span>Name</span>
+            <span>{t('creation.name')}</span>
             <input value={profile.name} maxLength={48} onChange={(event) => update('name', event.target.value)} autoFocus />
           </label>
           <label className="field">
-            <span>Age</span>
+            <span>{t('creation.age')}</span>
             <input type="number" min="18" max="49" value={profile.age} onChange={(event) => update('age', Number(event.target.value))} />
           </label>
           <label className="field">
-            <span>Nationality</span>
-            <input value="British" disabled />
+            <span>{t('creation.nationality')}</span>
+            <input value={t('creation.british')} disabled />
           </label>
           <label className="field">
-            <span>Hometown</span>
-            <input value={profile.hometown} maxLength={48} onChange={(event) => update('hometown', event.target.value)} />
+            <span>{t('creation.hometown')}</span>
+            <input value={localizeProfileValue(profile.hometown, language)} maxLength={48} onChange={(event) => update('hometown', event.target.value)} />
           </label>
           <label className="field">
-            <span>Occupation before the war</span>
-            <input value={profile.occupation} maxLength={56} onChange={(event) => update('occupation', event.target.value)} />
+            <span>{t('creation.occupation')}</span>
+            <input value={localizeProfileValue(profile.occupation, language)} maxLength={56} onChange={(event) => update('occupation', event.target.value)} />
           </label>
           <label className="field field-wide">
-            <span>Family</span>
-            <input value={profile.family} maxLength={88} onChange={(event) => update('family', event.target.value)} />
+            <span>{t('creation.family')}</span>
+            <input value={localizeProfileValue(profile.family, language)} maxLength={88} onChange={(event) => update('family', event.target.value)} />
           </label>
           <label className="field">
-            <span>Enlisted</span>
-            <input value={profile.enlisted} maxLength={32} onChange={(event) => update('enlisted', event.target.value)} />
+            <span>{t('creation.enlisted')}</span>
+            <input value={localizeProfileValue(profile.enlisted, language)} maxLength={32} onChange={(event) => update('enlisted', event.target.value)} />
           </label>
           <label className="field">
-            <span>Challenge seed</span>
+            <span>{t('creation.seed')}</span>
             <input type="number" value={seed} onChange={(event) => setSeed(Number(event.target.value))} />
-            <small>Same seed + same choices = same key outcomes.</small>
+            <small>{t('creation.seedHelp')}</small>
           </label>
           <div className="form-actions field-wide">
-            <button className="button button-ghost dark" type="button" onClick={randomise}>Generate another record</button>
-            <button className="button button-primary dark" type="submit" disabled={!valid}>Report to the front</button>
+            <button className="button button-ghost dark" type="button" onClick={randomise}>{t('creation.generate')}</button>
+            <button className="button button-primary dark" type="submit" disabled={!valid}>{t('creation.report')}</button>
           </div>
         </form>
-        <footer className="file-footer">The person is fictional. The historical timeline is not.</footer>
+        <footer className="file-footer">{t('creation.factNote')}</footer>
       </section>
     </main>
   );

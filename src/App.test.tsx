@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { SAVE_KEY } from './game/constants';
+import { LANGUAGE_KEY } from './i18n';
 
 function buttonWithText(root: ParentNode, text: string): HTMLButtonElement {
   const button = [...root.querySelectorAll('button')].find((candidate) => candidate.textContent?.includes(text));
@@ -52,5 +53,38 @@ describe('browser game flow', () => {
     await act(async () => root.unmount());
     expect(errors).not.toHaveBeenCalled();
     errors.mockRestore();
+  });
+
+  it('switches the complete playable surface to Chinese and remembers the choice', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    let root = createRoot(container);
+
+    await act(async () => root.render(<App />));
+    await act(async () => buttonWithText(container, '中文').click());
+    expect(container.textContent).toContain('你无法指挥军队');
+    expect(localStorage.getItem(LANGUAGE_KEY)).toBe('zh');
+
+    await act(async () => buttonWithText(container, '开始另一段人生').click());
+    expect(container.textContent).toContain('战争以前，你是谁？');
+    expect([...container.querySelectorAll('input')].some((input) => input.value === '铁路学徒')).toBe(true);
+
+    await act(async () => buttonWithText(container, '前往西线报到').click());
+    expect(container.textContent).toContain('道路在战壕前终止');
+    expect(container.textContent).toContain('你要怎么做？');
+
+    await act(async () => {
+      buttonWithText(container, '向班里的战友自我介绍').click();
+      await vi.advanceTimersByTimeAsync(300);
+    });
+    expect(container.textContent).toContain('上一则记录');
+    expect(container.textContent).toContain('五个人在冒烟的火盆旁');
+
+    await act(async () => root.unmount());
+    container.innerHTML = '';
+    root = createRoot(container);
+    await act(async () => root.render(<App />));
+    expect(container.textContent).toContain('继续Thomas Miller的人生');
+    await act(async () => root.unmount());
   });
 });

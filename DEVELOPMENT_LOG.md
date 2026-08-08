@@ -33,3 +33,11 @@
 - Audited fixed and posture-heavy policies over another 4,000 runs. Always taking the first choice reached the armistice 27/1,000 times; always taking the second reached it 23/1,000 times; careful posture reached it 234/1,000 times; bold posture reached it 10/1,000 times. Caution has the intended advantage without becoming a guaranteed route, and fixed button positions do not win reliably.
 - Confirmed the local Vite server returned the game document and the production bundle built successfully.
 - Reviewed campaign and daily-life wording against Imperial War Museums, the National Army Museum, the U.S. Army Center of Military History, the U.S. State Department historian, The National Archives, and 1914–1918 Online. Sources and simplifications are recorded in `docs/HISTORICAL_NOTES.md`.
+
+## 2026-08-08 — English and Chinese localization
+
+- Added a typed English/Simplified Chinese localization provider with an **EN / 中文** control on the opening, character creation, active game, and ending screens.
+- Persisted language independently from the active-life save and update the document language for assistive technology.
+- Translated the full playable surface: 111 events and every choice/outcome, 10 letters and replies, five NPC records, 12 historical records, dynamic diary/status text, postwar notes, and all ending causes.
+- Kept canonical authored data and game state in English. Stable event, choice, history, NPC, and ending IDs drive presentation-only localization, preserving seeded replay and save compatibility.
+- Added Chinese browser-flow, persistence, non-mutation, and exhaustive content-coverage tests. All 6 files and 26 tests pass; the production TypeScript/Vite build succeeds.

@@ -67,6 +67,7 @@ export function createNewGame(input: CharacterInput, rawSeed: number): GameState
       title: 'Posted to the Western Front',
       body: `${character.name}, formerly ${character.occupation.toLowerCase()} of ${character.hometown}, joined a front-line section.`,
       category: 'personnel',
+      eventId: 'initial-record',
     },
   ];
 
@@ -245,6 +246,7 @@ function npcIncident(state: GameState, rng: RandomCursor, directChance: number, 
     title: definition.name,
     body: epitaph,
     category: 'personnel',
+    npcId: selected.id,
   });
 }
 
@@ -306,6 +308,7 @@ function endGame(state: GameState, type: Ending['type'], cause: string, finalEve
     title: type === 'survived' ? 'The guns fell silent' : 'Final record',
     body: cause,
     category: 'ending',
+    endingType: type,
   });
 }
 
@@ -367,6 +370,7 @@ export function triggerHistory(state: GameState, from: string, to: string): Hist
       title: record.shortTitle,
       body: record.summary,
       category: 'historical',
+      historyId: record.id,
     });
   }
   return crossed;
@@ -495,6 +499,8 @@ export function resolveChoice(input: GameState, choiceId: string): GameState {
     title: event.title,
     body: messages.join(' '),
     category: event.kind,
+    eventId: event.id,
+    choiceId: choice.id,
   });
   state.lastResolution = messages;
   state.recentEventIds = [event.id, ...state.recentEventIds.filter((id) => id !== event.id)].slice(0, 7);
