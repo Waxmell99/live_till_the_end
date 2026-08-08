@@ -2,6 +2,8 @@ import { ARMISTICE_DATE } from './constants';
 import { availableChoices, createNewGame, daysSurvived, getCurrentEvent, resolveChoice } from './engine';
 import type { CharacterInput, EventChoice, GameState, SimulationSummary } from './types';
 
+export type SimulationPolicy = 'balanced' | 'first' | 'second' | 'careful' | 'bold';
+
 const SIM_CHARACTER: CharacterInput = {
   name: 'Thomas Miller',
   age: 19,
@@ -25,26 +27,40 @@ function choiceScore(state: GameState, choice: EventChoice): number {
   return score;
 }
 
-export function autoplayChoice(state: GameState): EventChoice {
+export function autoplayChoice(state: GameState, policy: SimulationPolicy = 'balanced'): EventChoice {
   const choices = availableChoices(state);
+  if (policy === 'first') return choices[0];
+  if (policy === 'second') return choices[Math.min(1, choices.length - 1)];
+  if (policy === 'careful') {
+    return [...choices].sort((a, b) => {
+      const posture = Number(b.posture === 'careful') - Number(a.posture === 'careful');
+      return posture || (a.risk?.danger ?? 0) - (b.risk?.danger ?? 0) || choiceScore(state, b) - choiceScore(state, a);
+    })[0];
+  }
+  if (policy === 'bold') {
+    return [...choices].sort((a, b) => {
+      const posture = Number(b.posture === 'bold') - Number(a.posture === 'bold');
+      return posture || (b.risk?.danger ?? 0) - (a.risk?.danger ?? 0) || choiceScore(state, b) - choiceScore(state, a);
+    })[0];
+  }
   const ranked = [...choices].sort((a, b) => choiceScore(state, b) - choiceScore(state, a));
   // Mostly prudent, with reproducible human inconsistency so simulation does not model one perfect policy.
   const index = ((state.seed ^ Math.imul(state.turn + 1, 2654435761)) >>> 0) % 10;
   return index < 7 || ranked.length === 1 ? ranked[0] : ranked[Math.min(1, ranked.length - 1)];
 }
 
-export function simulateGame(seed: number, maxTurns = 260): GameState {
+export function simulateGame(seed: number, maxTurns = 260, policy: SimulationPolicy = 'balanced'): GameState {
   let state = createNewGame(SIM_CHARACTER, seed);
   while (state.status === 'playing' && state.turn < maxTurns) {
     const event = getCurrentEvent(state);
     const choices = availableChoices(state, event);
     if (choices.length === 0) break;
-    state = resolveChoice(state, autoplayChoice(state).id);
+    state = resolveChoice(state, autoplayChoice(state, policy).id);
   }
   return state;
 }
 
-export function simulateMany(runs = 1000, baseSeed = 19171111): SimulationSummary {
+export function simulateMany(runs = 1000, baseSeed = 19171111, policy: SimulationPolicy = 'balanced'): SimulationSummary {
   const summary: SimulationSummary = {
     runs,
     survived: 0,
@@ -59,7 +75,7 @@ export function simulateMany(runs = 1000, baseSeed = 19171111): SimulationSummar
   let turns = 0;
   let days = 0;
   for (let index = 0; index < runs; index += 1) {
-    const state = simulateGame(baseSeed + Math.imul(index, 7919));
+    const state = simulateGame(baseSeed + Math.imul(index, 7919), 260, policy);
     turns += state.turn;
     days += daysSurvived(state);
     if (!state.ending) summary.stalled += 1;
