@@ -28,7 +28,18 @@ export function parseGame(raw: string): GameState | null {
     ) {
       return null;
     }
-    return candidate as GameState;
+    return {
+      ...candidate,
+      eventMemory: candidate.eventMemory && typeof candidate.eventMemory === 'object' ? candidate.eventMemory : {},
+      storyArcs: candidate.storyArcs && typeof candidate.storyArcs === 'object' ? candidate.storyArcs : {
+        james: 0,
+        arthur: 0,
+        edward: 0,
+        george: 0,
+        alfie: 0,
+      },
+      scheduledEvents: Array.isArray(candidate.scheduledEvents) ? candidate.scheduledEvents : [],
+    } as GameState;
   } catch {
     return null;
   }

@@ -23,6 +23,7 @@ import type {
 
 const FINAL_HOUR = '1918-11-11T10:00:00.000Z';
 const STAT_KEYS: StatKey[] = ['health', 'morale', 'stress', 'hunger', 'fatigue'];
+const STORY_ARC_IDS = ['james', 'arthur', 'edward', 'george', 'alfie'];
 
 export function clamp(value: number, min = 0, max = 100): number {
   return Math.max(min, Math.min(max, Math.round(value)));
@@ -92,6 +93,9 @@ export function createNewGame(input: CharacterInput, rawSeed: number): GameState
     npcs: createNpcStates(),
     inventory: ['gas_mask', 'family_photo'],
     flags: [],
+    eventMemory: {},
+    storyArcs: Object.fromEntries(STORY_ARC_IDS.map((id) => [id, 0])),
+    scheduledEvents: [],
     letters: [],
     journal,
     lastResolution: [],
@@ -116,12 +120,28 @@ export function requirementsMet(state: GameState, requirements?: EventRequiremen
     }
   }
   if (requirements.flagsAll?.some((flag) => !state.flags.includes(flag))) return false;
+  if (requirements.flagsAny && !requirements.flagsAny.some((flag) => state.flags.includes(flag))) return false;
   if (requirements.flagsNone?.some((flag) => state.flags.includes(flag))) return false;
   if (requirements.itemsAll?.some((item) => !state.inventory.includes(item))) return false;
   if (requirements.historyTriggered && !state.triggeredHistoryIds.includes(requirements.historyTriggered)) return false;
   if (requirements.npcActive) {
     const npc = state.npcs.find((candidate) => candidate.id === requirements.npcActive);
     if (!npc || npc.status !== 'active') return false;
+  }
+  if (requirements.minRelationships) {
+    for (const [id, value] of Object.entries(requirements.minRelationships)) {
+      if ((state.npcs.find((npc) => npc.id === id)?.relationship ?? 0) < value) return false;
+    }
+  }
+  if (requirements.maxRelationships) {
+    for (const [id, value] of Object.entries(requirements.maxRelationships)) {
+      if ((state.npcs.find((npc) => npc.id === id)?.relationship ?? 100) > value) return false;
+    }
+  }
+  if (requirements.arcStages) {
+    for (const [id, value] of Object.entries(requirements.arcStages)) {
+      if ((state.storyArcs?.[id] ?? 0) !== value) return false;
+    }
   }
   return true;
 }
@@ -159,6 +179,37 @@ function removeValues(target: string[], values: string[]): string[] {
   return target.filter((value) => !remove.has(value));
 }
 
+function ensureNarrativeState(state: GameState): void {
+  state.eventMemory ??= {};
+  state.storyArcs ??= Object.fromEntries(STORY_ARC_IDS.map((id) => [id, 0]));
+  state.scheduledEvents ??= [];
+  const needsJournalRecovery = Object.keys(state.eventMemory).length === 0
+    && state.journal.some((entry) => entry.eventId && entry.eventId !== 'initial-record');
+  if (!needsJournalRecovery) return;
+
+  for (const entry of state.journal) {
+    if (!entry.eventId || entry.eventId === 'initial-record') continue;
+    if (!state.eventMemory[entry.eventId]) {
+      const matching = state.journal.filter((candidate) => candidate.eventId === entry.eventId);
+      const last = matching[matching.length - 1];
+      const parsedTurn = Number(last.id.replace('turn-', ''));
+      state.eventMemory[entry.eventId] = {
+        count: matching.length,
+        lastTurn: Number.isFinite(parsedTurn) ? parsedTurn : 0,
+        lastChoiceId: last.choiceId ?? '',
+      };
+    }
+    try {
+      const event = eventById(entry.eventId);
+      if (event.arcId !== undefined && event.arcStage !== undefined) {
+        state.storyArcs[event.arcId] = Math.max(state.storyArcs[event.arcId] ?? 0, event.arcStage + 1);
+      }
+    } catch {
+      // Old saves may reference content removed in a later release.
+    }
+  }
+}
+
 function applyEffects(state: GameState, effects?: ChoiceEffects): void {
   if (!effects) return;
   state.stats = applyStatEffects(state.stats, effects.stats);
@@ -172,6 +223,17 @@ function applyEffects(state: GameState, effects?: ChoiceEffects): void {
   if (effects.removeItems) state.inventory = removeValues(state.inventory, effects.removeItems);
   if (effects.addFlags) state.flags = addUnique(state.flags, effects.addFlags);
   if (effects.removeFlags) state.flags = removeValues(state.flags, effects.removeFlags);
+  if (effects.setArcStages) state.storyArcs = { ...state.storyArcs, ...effects.setArcStages };
+  if (effects.scheduleEvents) {
+    for (const scheduled of effects.scheduleEvents) {
+      const dueTurn = state.turn + Math.max(1, scheduled.afterTurns);
+      const expiresTurn = dueTurn + (scheduled.expiresAfterTurns ?? 18);
+      state.scheduledEvents = [
+        ...state.scheduledEvents.filter((item) => item.eventId !== scheduled.eventId),
+        { eventId: scheduled.eventId, dueTurn, expiresTurn },
+      ];
+    }
+  }
 }
 
 function elapsedDays(from: string, to: string): number {
@@ -397,6 +459,13 @@ function inActiveCampaign(date: string): boolean {
 
 function eventEligible(state: GameState, event: GameEvent): boolean {
   if (!requirementsMet(state, event.requirements)) return false;
+  const memory = state.eventMemory?.[event.id];
+  if (event.repeat?.maxOccurrences !== undefined && (memory?.count ?? 0) >= event.repeat.maxOccurrences) return false;
+  if (event.repeat?.cooldownTurns !== undefined && memory && state.turn - memory.lastTurn < event.repeat.cooldownTurns) return false;
+  if (event.scheduledOnly) {
+    const due = state.scheduledEvents?.some((item) => item.eventId === event.id && item.dueTurn <= state.turn && item.expiresTurn >= state.turn);
+    if (!due) return false;
+  }
   if (event.kind === 'letter') {
     const id = event.id.replace('letter:', '');
     if (state.letters.some((letter) => letter.id === id)) return false;
@@ -407,6 +476,8 @@ function eventEligible(state: GameState, event: GameEvent): boolean {
 
 function chooseFromCategory(state: GameState, events: GameEvent[], rng: RandomCursor): GameEvent | undefined {
   let candidates = events.filter((event) => eventEligible(state, event));
+  const unseen = candidates.filter((event) => !state.eventMemory?.[event.id]);
+  if (unseen.length > 0) candidates = unseen;
   const withoutRecent = candidates.filter((event) => !state.recentEventIds.includes(event.id));
   if (withoutRecent.length > 0) candidates = withoutRecent;
   if (candidates.length === 0) return undefined;
@@ -418,6 +489,13 @@ export function selectNextEvent(state: GameState, rng: RandomCursor): GameEvent 
   const pending = state.pendingHistoryIds[0];
   if (pending) return eventById(`history:${pending}`);
 
+  const scheduled = (state.scheduledEvents ?? [])
+    .filter((item) => item.dueTurn <= state.turn && item.expiresTurn >= state.turn)
+    .sort((a, b) => a.dueTurn - b.dueTurn)
+    .map((item) => eventById(item.eventId))
+    .find((event) => eventEligible(state, event));
+  if (scheduled) return scheduled;
+
   const eligible = PLAY_EVENTS.filter((event) => eventEligible(state, event));
   const combat = eligible.filter((event) => event.kind === 'combat');
   const relationships = eligible.filter((event) => event.kind === 'relationship');
@@ -427,7 +505,7 @@ export function selectNextEvent(state: GameState, rng: RandomCursor): GameEvent 
   const activeCampaign = inActiveCampaign(state.currentDate);
   const roll = rng.next();
   let selected: GameEvent | undefined;
-  const combatChance = activeCampaign ? 0.34 : 0.08;
+  const combatChance = activeCampaign ? 0.5 : 0.11;
   const relationshipLimit = combatChance + 0.17;
   const letterLimit = relationshipLimit + (state.turn > 1 ? 0.11 : 0);
   if (roll < combatChance) selected = chooseFromCategory(state, combat, rng);
@@ -468,6 +546,7 @@ function normaliseAfterTurn(state: GameState, rng: RandomCursor, outcome: string
 export function resolveChoice(input: GameState, choiceId: string): GameState {
   if (input.status !== 'playing') return input;
   const state = structuredClone(input);
+  ensureNarrativeState(state);
   const event = getCurrentEvent(state);
   const choice = availableChoices(state, event).find((candidate) => candidate.id === choiceId);
   if (!choice) throw new Error(`Choice ${choiceId} is unavailable for event ${event.id}`);
@@ -475,6 +554,7 @@ export function resolveChoice(input: GameState, choiceId: string): GameState {
   const rng = new RandomCursor(state.rngState);
   const previousDate = state.currentDate;
   const messages = [choice.outcome];
+  state.scheduledEvents = state.scheduledEvents.filter((item) => item.eventId !== event.id && item.expiresTurn >= state.turn);
   applyEffects(state, choice.effects);
   recordLetter(state, event, choice);
 
@@ -493,6 +573,12 @@ export function resolveChoice(input: GameState, choiceId: string): GameState {
   triggerHistory(state, previousDate, state.currentDate);
 
   state.turn += 1;
+  const previousMemory = state.eventMemory[event.id];
+  state.eventMemory[event.id] = {
+    count: (previousMemory?.count ?? 0) + 1,
+    lastTurn: state.turn,
+    lastChoiceId: choice.id,
+  };
   state.journal.push({
     id: `turn-${state.turn}`,
     date: previousDate,

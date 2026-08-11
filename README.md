@@ -43,9 +43,9 @@ The game autosaves after character creation and every choice. `Continue` restore
 - Opening sequence, character generation, seeded challenge runs, and one complete British route.
 - Complete English and Simplified Chinese presentation for UI, events, choices, outcomes, diaries, letters, comrades, history, and endings, with a persistent in-game language switcher.
 - Dynamic time: ordinary events jump days; dangerous actions advance hours or minutes.
-- 63 routine/survival events, 16 combat events, 10 personal NPC events, 10 letters, and 12 fixed historical records.
+- 63 routine/survival events, 16 combat events, 20 linked NPC story events, six campaign chapter scenes, 10 letters, and 12 fixed historical records.
 - Health, morale, stress, hunger, fatigue, hidden luck, equipment, weather, and contextual danger.
-- Five persistent fictional comrades with relationships, personal scenes, injury, death, capture, transfer, and recovery.
+- Five persistent fictional comrades with four-stage personal arcs, branching callbacks, relationships, injury, death, capture, transfer, and recovery.
 - Historically fixed Arras, Third Ypres, Cambrai, German spring offensive, Second Marne, Hundred Days, and armistice context.
 - War diary, kept letters, personnel roll, field map, historical archive, and visible fact/fiction labels.
 - Killed in action, died of wounds, invalided home, prisoner of war, and armistice survival endings.
@@ -60,6 +60,8 @@ Each choice has authored effects and, where appropriate, a base danger. The engi
 All consequential random draws come from the saved Mulberry32 state. The same seed and the same choices reproduce the same key results, including event selection and casualties. Audio texture is cosmetic and does not use game randomness.
 
 Historical events trigger when the clock crosses their dates. The player may read, discuss, or return to work, but none of those responses changes the event itself.
+
+Events remember how often and how recently they appeared. One-off scenes cannot repeat, combat scenes have a long cooldown, unseen material is preferred, and choices can schedule a later consequence. Six major historical milestones open authored chapter scenes, while each comrade’s personal thread advances through four connected stages and may be interrupted by wounds or death.
 
 ## Technology and architecture
 
@@ -101,16 +103,18 @@ Release screenshots are stored under [`docs/screenshots/`](docs/screenshots/READ
 
 ## Balance snapshot
 
-The final 1,000-run `Historical` simulation produced:
+The final 1,000-run balanced simulation produced:
 
 ```text
-Survived to armistice: 152
-Killed in action:      531
-Died of wounds:         87
-Invalided home:        200
-Prisoner of war:        30
+Survived to armistice: 182
+Killed in action:      540
+Died of wounds:         84
+Invalided home:        162
+Prisoner of war:        32
 Stalled:                 0
-Average turns:        83.3
+Average turns:        79.4
 ```
+
+Among armistice survivors, the average complete life lasted 120.4 turns, the exact-event repeat rate was 8.7%, 4.9 of five personal arcs were completed, and all six campaign chapter scenes appeared.
 
 This is a game balance target, not a claim about the statistical experience of a real 1917 British unit.

@@ -49,10 +49,14 @@ export interface EventRequirements {
   minStats?: Partial<Stats>;
   maxStats?: Partial<Stats>;
   flagsAll?: string[];
+  flagsAny?: string[];
   flagsNone?: string[];
   itemsAll?: string[];
   npcActive?: string;
   historyTriggered?: string;
+  minRelationships?: Record<string, number>;
+  maxRelationships?: Record<string, number>;
+  arcStages?: Record<string, number>;
 }
 
 export interface TimeAdvance {
@@ -69,6 +73,17 @@ export interface ChoiceEffects {
   addFlags?: string[];
   removeFlags?: string[];
   receiveLetter?: string;
+  setArcStages?: Record<string, number>;
+  scheduleEvents?: Array<{
+    eventId: string;
+    afterTurns: number;
+    expiresAfterTurns?: number;
+  }>;
+}
+
+export interface EventRepeat {
+  maxOccurrences?: number;
+  cooldownTurns?: number;
 }
 
 export interface ChoiceRisk {
@@ -107,6 +122,10 @@ export interface GameEvent {
   tags?: string[];
   focusNpcId?: string;
   historyId?: string;
+  repeat?: EventRepeat;
+  arcId?: string;
+  arcStage?: number;
+  scheduledOnly?: boolean;
 }
 
 export interface HistoricalRecord {
@@ -140,6 +159,18 @@ export interface LetterState {
   receivedAt: string;
   saved: boolean;
   repliedWith?: string;
+}
+
+export interface EventMemoryEntry {
+  count: number;
+  lastTurn: number;
+  lastChoiceId: string;
+}
+
+export interface ScheduledEvent {
+  eventId: string;
+  dueTurn: number;
+  expiresTurn: number;
 }
 
 export interface JournalEntry {
@@ -189,6 +220,9 @@ export interface GameState {
   npcs: NpcState[];
   inventory: string[];
   flags: string[];
+  eventMemory: Record<string, EventMemoryEntry>;
+  storyArcs: Record<string, number>;
+  scheduledEvents: ScheduledEvent[];
   letters: LetterState[];
   journal: JournalEntry[];
   lastResolution: string[];
@@ -215,4 +249,8 @@ export interface SimulationSummary {
   stalled: number;
   averageTurns: number;
   averageDays: number;
+  survivorAverageTurns: number;
+  survivorRepeatRate: number;
+  survivorAverageCompletedArcs: number;
+  survivorAverageChapterEvents: number;
 }

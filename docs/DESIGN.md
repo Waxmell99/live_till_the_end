@@ -6,11 +6,13 @@ The player is an ordinary British infantryman on the Western Front. History move
 
 ## Game loop
 
-Each turn presents one situated event. A choice applies deterministic effects, resolves contextual risk, advances time, updates historical context and relationships, writes a diary entry, and selects the next eligible event. Quiet routines advance days or weeks. Front-line danger advances hours. This gives roughly 55–100 meaningful turns rather than simulating every day.
+Each turn presents one situated event. A choice applies deterministic effects, resolves contextual risk, advances time, updates historical context and relationships, writes a diary entry, and selects the next eligible event. Quiet routines advance days or weeks. Front-line danger advances hours. Ended lives average roughly 80 turns; a full armistice life averages roughly 120 because it crosses the complete historical timeline.
 
 ## Event system
 
-`GameEvent` data is separate from rendering. Events carry eligibility rules, contextual weights, choices, time ranges, effects, relationship changes, and risks. Risk is modified by health, fatigue, stress, weather, equipment, relationships, choice posture, and the character's hidden luck. Recent-event suppression prevents obvious loops. Historical notices use the same presentation layer but never offer choices that change the recorded outcome.
+`GameEvent` data is separate from rendering. Events carry eligibility rules, contextual weights, choices, time ranges, effects, relationship changes, risks, occurrence limits, cooldowns, and optional story metadata. Risk is modified by health, fatigue, stress, weather, equipment, choice posture, and hidden luck.
+
+The selector resolves fixed history first, then due personal or chapter callbacks, then prefers unseen eligible content inside a category. Ordinary authored scenes appear once; combat scenes may recur only after a long cooldown. Exact occurrence history and the choice that caused it are stored in `GameState`, replacing the former seven-event-only suppression as the primary repetition control.
 
 ## Random system
 
@@ -18,15 +20,15 @@ All consequential randomness passes through a serializable Mulberry32 state. A n
 
 ## NPC system
 
-Five persistent fictional comrades have background, temperament, relationship value, and status. Choices may build or damage trust. Active comrades can be wounded, killed, captured, or transferred; no NPC has plot armour. Status changes become diary entries and alter later event eligibility and tone.
+Five persistent fictional comrades have background, temperament, relationship value, status, and a four-stage personal arc. A choice advances the arc, records branch flags, and schedules the next scene after other events have passed. Later choices can require earlier trust, refusal, apology, or promises. Active comrades can still be wounded, killed, captured, or transferred; no NPC has plot armour, so war may interrupt a thread rather than waiting for its planned conclusion.
 
 ## History system
 
-Curated timeline records have fixed dates, short factual summaries, locations, and contextual effects. Crossing a date queues a historical notice and updates the theatre context. Fictional incidents are visibly labelled “Personal record”; factual notices are labelled “Historical record.” The player can respond personally but cannot redirect the event.
+Curated timeline records have fixed dates, short factual summaries, locations, and contextual effects. Crossing a date queues a historical notice and updates the theatre context. Arras, Third Ypres, Cambrai, the spring offensive, Second Marne, and the Hundred Days each schedule a distinct fictional section-level chapter scene. The player can change only the personal response and never redirect the recorded event.
 
 ## Save system
 
-The full serializable `GameState` is written to `localStorage` after character creation and every resolved turn. Saves have a schema version and are validated before use. A corrupt or incompatible save is rejected without crashing, and starting another life replaces it only after confirmation.
+The full serializable `GameState` is written to `localStorage` after character creation and every resolved turn. This includes PRNG state, event memory, arc stages, branch flags, and delayed-event deadlines. Saves have a schema version and are validated before use; older version-one saves receive empty narrative defaults and are enriched from their journal on the next choice.
 
 ## Localization
 

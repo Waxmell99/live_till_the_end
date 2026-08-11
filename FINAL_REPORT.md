@@ -8,10 +8,10 @@ The project is a complete, locally runnable browser game with a continuous route
 - Complete English and Simplified Chinese UI and authored content, with live switching and a remembered browser preference.
 - Editable and seeded British character creation with generated alternatives.
 - Dynamic calendar from 12 February 1917 to exactly 11:00 on 11 November 1918.
-- 63 routine/survival events, 16 combat events, 10 NPC events, 10 letters, and 12 historical records.
+- 63 routine/survival events, 16 combat events, 20 linked NPC story events, six campaign chapter scenes, 10 letters, and 12 historical records.
 - Two to four contextual decisions on authored gameplay events, with requirements and non-binary trade-offs.
 - Health, morale, stress, hunger, fatigue, hidden luck, weather, equipment, and contextual risk.
-- Five persistent comrades with biography, relationship, status, individual scenes, injury, death, capture, transfer, and recovery.
+- Five persistent comrades with four-stage branching stories, delayed callbacks, biography, relationship, injury, death, capture, transfer, and recovery.
 - War diary, letters and replies, personnel files, historical archive, schematic map, and campaign record.
 - Exact seeded replay, automatic local save, manual save, safe corrupt-save rejection, and continue flow.
 - Killed in action, died of wounds, invalided home, prisoner of war, and survived endings.
@@ -47,7 +47,9 @@ Localization is display-only: canonical engine data and saves remain in English,
 
 ### Events and choices
 
-Events declare eligibility, choices, effects, relationships, equipment changes, time ranges, and risk. Selection first chooses an appropriate category, then an eligible weighted event, while suppressing the seven most recent events. Campaign windows raise combat frequency; they do not replace daily life.
+Events declare eligibility, choices, effects, relationships, equipment changes, time ranges, risk, occurrence limits, and cooldowns. Selection resolves pending history first, then due story callbacks, then prefers unseen eligible material inside an appropriate category. Authored daily scenes occur once, combat scenes may recur only after a long cooldown, and the quiet-sector fallback prevents exhaustion from stalling a life.
+
+Choices may update a personal-story stage, preserve a branch flag, and schedule a consequence several turns later. The schedule, occurrence memory, last choice, and story stages are serializable and deterministic.
 
 ### Randomness and decision value
 
@@ -55,7 +57,7 @@ Mulberry32 state is stored in every save. Risk uses health, fatigue, stress, mor
 
 ### NPCs
 
-Comrades have no plot armour. A contextual incident may wound, kill, or separate one active comrade. Wounded comrades may return or transfer after treatment. Personnel changes affect player condition, later eligibility, the roster portrait, and the diary.
+Each comrade has a four-stage personal thread. Early responses alter relationship values and flags that expose different choices in later scenes; wounds, death, capture, or transfer can interrupt the thread. Comrades still have no plot armour, and personnel changes remain part of the same diary rather than a separate quest system.
 
 ### Time and endings
 
@@ -63,11 +65,11 @@ Routine choices advance several days, while combat advances hours and the final 
 
 ### Save system
 
-Every consequential field is plain serializable data, including PRNG position. Refreshing restores rather than rerolls the current situation. The current schema supports one local life and rejects incompatible or malformed data instead of applying partial state.
+Every consequential field is plain serializable data, including PRNG position, event occurrence memory, personal-story stages, and delayed events. Refreshing restores rather than rerolls the current situation. Older version-one saves receive safe narrative defaults and continue without a reset.
 
 ## Historical system
 
-The archive distinguishes **Recorded history** from **Personal record**. Crossing fixed dates queues historical notices, updates theatre context, and records the public event. Choices around a notice alter only personal response.
+The archive distinguishes **Recorded history** from **Personal record**. Crossing fixed dates queues historical notices, updates theatre context, and records the public event. Six major milestones schedule a distinct fictional chapter scene tied to the player’s section; choices affect only that personal experience and never the historical outcome.
 
 Campaign language and dates were reviewed against museum, archive, government-history, and scholarly reference material. `docs/HISTORICAL_NOTES.md` lists every boundary, fictional element, simplification, uncertainty, and source. The player, NPCs, families, letters, local incidents, diary, and postwar life are explicitly fictional composites.
 
@@ -80,7 +82,7 @@ No API is required or called. Version 1 uses authored local prose, so installati
 Final verification commands:
 
 ```text
-npm test       6 files passed, 26 tests passed
+npm test       6 files passed, 30 tests passed
 npm run build  TypeScript passed, Vite production build passed
 ```
 
@@ -98,36 +100,37 @@ Coverage by behaviour includes:
 - Complete automatic games without stalls.
 - jsdom click-through: title → creation → first choice → autosave → diary, with no console errors.
 - jsdom Chinese click-through, language persistence across remounts, and unchanged canonical save data.
-- Translation coverage for all 111 events and their choices, plus all letters, comrades, historical records, journal outcomes, and risk causes.
+- Translation coverage for all 127 events and their choices, plus all letters, comrades, historical records, journal outcomes, and risk causes.
+- Delayed story continuation, choice-dependent later options, historical chapter scheduling, old-save narrative defaults, and long-life repeat-rate limits.
 - Local Vite HTTP response and production bundle generation.
 
-Production output at final verification was approximately 0.60 kB HTML, 31.97 kB CSS (8.00 kB gzip), and 382.69 kB JavaScript (132.79 kB gzip).
+Production output at final verification was approximately 0.60 kB HTML, 31.97 kB CSS (8.00 kB gzip), and 418.16 kB JavaScript (143.73 kB gzip).
 
 ## Auto Simulation results
 
 Balanced policy, 1,000 deterministic seeds:
 
 ```text
-Survived to armistice  152
-Killed                 531
-Died of wounds          87
-Invalided home         200
-Prisoner of war         30
+Survived to armistice  182
+Killed                 540
+Died of wounds          84
+Invalided home         162
+Prisoner of war         32
 Stalled                  0
-Average turns          83.3
-Average days          385.4
+Average turns          79.4
+Average days          418.7
 ```
 
-The direct armistice rate is 15.2%; including invaliding and captivity, 38.2% of simulated characters survive the war. These are gameplay outputs, not historical casualty claims.
+The direct armistice rate is 18.2%; including invaliding and captivity, 37.6% of simulated characters survive the war. Among armistice survivors, complete lives average 120.4 turns with an 8.7% exact-event repeat rate, 4.9 completed personal arcs, and all six historical chapter scenes. These are gameplay outputs, not historical casualty claims.
 
 Policy audit, 1,000 seeds each:
 
 | Policy | Armistice | Killed | Wounds | Invalided | POW | Stalled |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Always first choice | 27 | 567 | 126 | 257 | 23 | 0 |
-| Always second choice | 23 | 596 | 132 | 200 | 49 | 0 |
-| Prefer careful posture | 234 | 445 | 72 | 221 | 28 | 0 |
-| Prefer bold posture | 10 | 708 | 114 | 128 | 40 | 0 |
+| Always first choice | 39 | 566 | 113 | 242 | 40 | 0 |
+| Always second choice | 13 | 593 | 159 | 184 | 51 | 0 |
+| Prefer careful posture | 302 | 417 | 74 | 169 | 38 | 0 |
+| Prefer bold posture | 7 | 723 | 94 | 136 | 40 | 0 |
 
 The audit confirms that fixed button positions are not winning routes. Caution improves survival as intended, but does not guarantee it; bold play carries substantially more risk while often providing morale and relationship gains during an individual run.
 
@@ -143,13 +146,13 @@ The audit confirms that fixed button positions are not winning routes. Caution i
 
 ## Next-stage recommendations
 
-1. Add a French route with its own researched unit context, event catalogue, names, archive framing, and balance run.
+1. Add choice-dependent variants to the ten letters so replies can echo in later mail.
 2. Expand captivity and recovery into short playable survival chapters rather than immediate epilogues.
-3. Add multiple local save slots and a small seed/share code that contains no personal data.
-4. Commission or create historically reviewed, fictional portrait/landscape assets while retaining explicit fact/fiction labels.
+3. Add a French route with its own researched unit context, event catalogue, names, archive framing, and balance run.
+4. Add multiple local save slots and a small seed/share code that contains no personal data.
 5. Add browser screenshot regression at desktop and mobile breakpoints in CI.
 6. If dynamic prose is added, implement a strict optional adapter with structured inputs, no historical mutation, local fallbacks, and fixture tests.
 
 ## Completion judgment
 
-The game starts in under 30 seconds, exposes its objective before the first choice, gives repeated opportunities to care about named comrades, retains their fate in the final record, and can reach both death and a deliberately quiet armistice. Core tests, production build, save flow, and large simulations pass. Remaining work is expansion rather than repair of the required game loop.
+The game starts in under 30 seconds, exposes its objective before the first choice, builds connected histories with named comrades, retains their fate in the final record, and can reach both death and a deliberately quiet armistice. Core tests, production build, save flow, narrative audit, and large simulations pass.

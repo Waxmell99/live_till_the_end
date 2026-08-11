@@ -3,6 +3,7 @@ import type { HistoricalRecord } from '../game/types';
 import type { LetterDefinition, JournalEntry, GameEvent, EventChoice, GameState, NpcDefinition } from '../game/types';
 import type { Language } from '.';
 import { ZH_COMBAT_EVENTS } from './events-combat.zh';
+import { ZH_CHAPTER_EVENTS } from './events-chapters.zh';
 import type { EventTranslation } from './content-types';
 import { ZH_LETTERS, ZH_LETTER_EVENTS, ZH_NPCS } from './events-people.zh';
 import { ZH_RELATIONSHIP_EVENTS } from './events-people.zh';
@@ -12,6 +13,7 @@ import { ZH_HISTORICAL_EVENTS, ZH_HISTORY } from './history.zh';
 export const ZH_EVENTS: Record<string, EventTranslation> = {
   ...ZH_ROUTINE_EVENTS,
   ...ZH_COMBAT_EVENTS,
+  ...ZH_CHAPTER_EVENTS,
   ...ZH_RELATIONSHIP_EVENTS,
   ...ZH_LETTER_EVENTS,
   ...ZH_HISTORICAL_EVENTS,
@@ -118,6 +120,7 @@ const CAUSE_ZH: Record<string, string> = {
   'a dugout roof collapse': '掩蔽部顶棚坍塌',
   'shellfire on an observed route': '受敌军监视路线上的炮火',
   'shellfire on a stretcher route': '担架运输路线上的炮火',
+  'exhaustion in flooded shell holes': '积水弹坑中的力竭',
 };
 
 export function localizeProfileValue(value: string, language: Language): string {

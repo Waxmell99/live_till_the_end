@@ -373,7 +373,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     choices: [
       statChoice('Keep a strict routine', 'Make each day small and predictable.', 'duty', { stress: -5, morale: 3, fatigue: -4, health: 2 }, 'The days pass without leaving clear edges.'),
       statChoice('Sleep whenever possible', 'Store strength for whatever follows.', 'rest', { fatigue: -12, stress: -2, morale: 1 }, 'You learn to sleep through distant guns.'),
-    ], advance: { min: 9, max: 16, unit: 'days' }, weight: 1.4, tags: ['quiet', 'rest'],
+    ], advance: { min: 9, max: 16, unit: 'days' }, weight: 1.4, tags: ['quiet', 'rest'], repeat: { cooldownTurns: 12 },
   }),
   makeEvent({
     id: 'sick-horse', title: 'A horse in the road', kicker: 'Supply column',

@@ -4,6 +4,7 @@ import type {
   EventChoice,
   EventKind,
   EventRequirements,
+  EventRepeat,
   GameEvent,
   TimeAdvance,
 } from '../../game/types';
@@ -45,11 +46,16 @@ export function makeEvent(seed: {
   requirements?: EventRequirements;
   tags?: string[];
   focusNpcId?: string;
+  repeat?: EventRepeat;
+  arcId?: string;
+  arcStage?: number;
+  scheduledOnly?: boolean;
 }): GameEvent {
+  const kind = seed.kind ?? 'routine';
   const advance = seed.advance ?? { min: 4, max: 9, unit: 'days' };
   return {
     id: seed.id,
-    kind: seed.kind ?? 'routine',
+    kind,
     title: seed.title,
     kicker: seed.kicker,
     text: [seed.text],
@@ -59,10 +65,14 @@ export function makeEvent(seed: {
     choices: seed.choices.map((choice, index) => makeChoice(String.fromCharCode(97 + index), choice, advance)),
     tags: seed.tags,
     focusNpcId: seed.focusNpcId,
+    repeat: seed.repeat ?? (kind === 'combat' ? { maxOccurrences: 2, cooldownTurns: 18 } : { maxOccurrences: 1 }),
+    arcId: seed.arcId,
+    arcStage: seed.arcStage,
+    scheduledOnly: seed.scheduledOnly,
   };
 }
 
-export const quietAdvance: TimeAdvance = { min: 5, max: 11, unit: 'days' };
+export const quietAdvance: TimeAdvance = { min: 7, max: 14, unit: 'days' };
 export const shortAdvance: TimeAdvance = { min: 1, max: 4, unit: 'days' };
 export const dangerAdvance: TimeAdvance = { min: 1, max: 7, unit: 'hours' };
 

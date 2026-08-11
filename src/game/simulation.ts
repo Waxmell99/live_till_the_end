@@ -4,6 +4,15 @@ import type { CharacterInput, EventChoice, GameState, SimulationSummary } from '
 
 export type SimulationPolicy = 'balanced' | 'first' | 'second' | 'careful' | 'bold';
 
+export interface NarrativeMetrics {
+  resolvedEvents: number;
+  uniqueEvents: number;
+  repeatedEvents: number;
+  repeatRate: number;
+  completedStoryArcs: number;
+  chapterEvents: number;
+}
+
 const SIM_CHARACTER: CharacterInput = {
   name: 'Thomas Miller',
   age: 19,
@@ -60,6 +69,22 @@ export function simulateGame(seed: number, maxTurns = 260, policy: SimulationPol
   return state;
 }
 
+export function narrativeMetrics(state: GameState): NarrativeMetrics {
+  const eventIds = state.journal
+    .map((entry) => entry.eventId)
+    .filter((id): id is string => Boolean(id) && id !== 'initial-record' && !id?.startsWith('history:'));
+  const uniqueEvents = new Set(eventIds).size;
+  const repeatedEvents = eventIds.length - uniqueEvents;
+  return {
+    resolvedEvents: eventIds.length,
+    uniqueEvents,
+    repeatedEvents,
+    repeatRate: eventIds.length === 0 ? 0 : repeatedEvents / eventIds.length,
+    completedStoryArcs: Object.values(state.storyArcs ?? {}).filter((stage) => stage >= 4).length,
+    chapterEvents: new Set(eventIds.filter((id) => id.startsWith('chapter-'))).size,
+  };
+}
+
 export function simulateMany(runs = 1000, baseSeed = 19171111, policy: SimulationPolicy = 'balanced'): SimulationSummary {
   const summary: SimulationSummary = {
     runs,
@@ -71,9 +96,18 @@ export function simulateMany(runs = 1000, baseSeed = 19171111, policy: Simulatio
     stalled: 0,
     averageTurns: 0,
     averageDays: 0,
+    survivorAverageTurns: 0,
+    survivorRepeatRate: 0,
+    survivorAverageCompletedArcs: 0,
+    survivorAverageChapterEvents: 0,
   };
   let turns = 0;
   let days = 0;
+  let survivorTurns = 0;
+  let survivorEvents = 0;
+  let survivorRepeats = 0;
+  let survivorArcs = 0;
+  let survivorChapters = 0;
   for (let index = 0; index < runs; index += 1) {
     const state = simulateGame(baseSeed + Math.imul(index, 7919), 260, policy);
     turns += state.turn;
@@ -83,8 +117,22 @@ export function simulateMany(runs = 1000, baseSeed = 19171111, policy: Simulatio
     if (state.ending?.type === 'survived' && state.currentDate !== ARMISTICE_DATE) {
       throw new Error('Survival ending did not occur at the armistice');
     }
+    if (state.ending?.type === 'survived') {
+      const narrative = narrativeMetrics(state);
+      survivorTurns += state.turn;
+      survivorEvents += narrative.resolvedEvents;
+      survivorRepeats += narrative.repeatedEvents;
+      survivorArcs += narrative.completedStoryArcs;
+      survivorChapters += narrative.chapterEvents;
+    }
   }
   summary.averageTurns = Math.round((turns / runs) * 10) / 10;
   summary.averageDays = Math.round((days / runs) * 10) / 10;
+  if (summary.survived > 0) {
+    summary.survivorAverageTurns = Math.round((survivorTurns / summary.survived) * 10) / 10;
+    summary.survivorRepeatRate = Math.round((survivorRepeats / Math.max(1, survivorEvents)) * 1000) / 1000;
+    summary.survivorAverageCompletedArcs = Math.round((survivorArcs / summary.survived) * 10) / 10;
+    summary.survivorAverageChapterEvents = Math.round((survivorChapters / summary.survived) * 10) / 10;
+  }
   return summary;
 }

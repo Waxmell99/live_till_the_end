@@ -41,3 +41,12 @@
 - Translated the full playable surface: 111 events and every choice/outcome, 10 letters and replies, five NPC records, 12 historical records, dynamic diary/status text, postwar notes, and all ending causes.
 - Kept canonical authored data and game state in English. Stable event, choice, history, NPC, and ending IDs drive presentation-only localization, preserving seeded replay and save compatibility.
 - Added Chinese browser-flow, persistence, non-mutation, and exhaustive content-coverage tests. All 6 files and 26 tests pass; the production TypeScript/Vite build succeeds.
+
+## 2026-08-11 — Connected narrative system
+
+- Replaced the flat repeat pool with persistent event occurrence memory, maximum-use rules, long combat cooldowns, unseen-content preference, personal-story stages, branch flags, and delayed event scheduling.
+- Converted the five comrades from two repeatable fragments each into four-stage personal stories. Early responses now alter later available choices, and wounds, death, capture, or transfer can interrupt a thread.
+- Added six section-level chapter scenes tied to Arras, Third Ypres, Cambrai, the German spring offensive, Second Marne, and the Hundred Days without allowing the player to change public history.
+- Expanded the bilingual content catalogue from 111 to 127 events and added visible “personal thread” and “historical chapter” context labels.
+- Added old-save narrative defaults and deterministic tests for delayed callbacks, branch-dependent choices, chapter scheduling, content coverage, and long-life narrative quality.
+- Final balanced 1,000-run audit: 182 armistice survivors, 540 killed, 84 deaths from wounds, 162 invalided, 32 prisoners, and zero stalls. Surviving lives averaged 120.4 turns with an 8.7% exact-event repeat rate, 4.9 completed personal arcs, and all six historical chapters.

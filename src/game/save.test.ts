@@ -36,4 +36,16 @@ describe('save system', () => {
     expect(parseGame('{"version":99}')).toBeNull();
     expect(parseGame('null')).toBeNull();
   });
+
+  it('adds narrative state defaults to an older version-one save', () => {
+    const game = createNewGame(profile, 90210);
+    const legacy = structuredClone(game) as Partial<typeof game>;
+    delete legacy.eventMemory;
+    delete legacy.storyArcs;
+    delete legacy.scheduledEvents;
+    const loaded = parseGame(JSON.stringify(legacy));
+    expect(loaded?.eventMemory).toEqual({});
+    expect(loaded?.storyArcs).toEqual({ james: 0, arthur: 0, edward: 0, george: 0, alfie: 0 });
+    expect(loaded?.scheduledEvents).toEqual([]);
+  });
 });

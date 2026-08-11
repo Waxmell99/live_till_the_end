@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { COMBAT_EVENTS } from '../data/events/combat';
+import { CHAPTER_EVENTS } from '../data/events/chapters';
 import { HISTORICAL_EVENTS, LETTER_EVENTS } from '../data/events';
 import { RELATIONSHIP_EVENTS } from '../data/events/relationships';
 import { ROUTINE_EVENTS } from '../data/events/routine';
@@ -14,6 +15,7 @@ import {
   getCurrentEvent,
   requirementsMet,
   resolveChoice,
+  selectNextEvent,
   triggerHistory,
 } from './engine';
 import { RandomCursor } from './random';
@@ -32,7 +34,8 @@ describe('content requirements', () => {
   it('ships the requested first-version content scale', () => {
     expect(ROUTINE_EVENTS.length).toBeGreaterThanOrEqual(50);
     expect(COMBAT_EVENTS.length).toBeGreaterThanOrEqual(15);
-    expect(RELATIONSHIP_EVENTS.length).toBeGreaterThanOrEqual(10);
+    expect(RELATIONSHIP_EVENTS.length).toBeGreaterThanOrEqual(20);
+    expect(CHAPTER_EVENTS).toHaveLength(6);
     expect(HISTORY_TIMELINE.length).toBeGreaterThanOrEqual(10);
     expect(HISTORICAL_EVENTS.length).toBeGreaterThanOrEqual(10);
     expect(LETTERS.length).toBeGreaterThanOrEqual(10);
@@ -148,5 +151,37 @@ describe('requirements and reproducibility', () => {
       second = resolveChoice(second, choiceId);
     }
     expect(first).toEqual(second);
+  });
+
+  it('carries an NPC choice into a delayed, branching personal story', () => {
+    let state = createNewGame(PROFILE, 20260811);
+    state.currentEventId = 'edward-first-shot';
+    state = resolveChoice(state, 'c');
+
+    expect(state.storyArcs.edward).toBe(1);
+    expect(state.flags).toContain('edward_shamed');
+    const birthday = state.scheduledEvents.find((event) => event.eventId === 'edward-age')!;
+    state.turn = birthday.dueTurn;
+    expect(selectNextEvent(state, new RandomCursor(state.rngState)).id).toBe('edward-age');
+
+    state.currentEventId = 'edward-age';
+    state = resolveChoice(state, 'a');
+    const patrol = state.scheduledEvents.find((event) => event.eventId === 'edward-before-patrol')!;
+    state.turn = patrol.dueTurn;
+    state.currentEventId = 'edward-before-patrol';
+    expect(availableChoices(state).map((choice) => choice.id)).toEqual(['b', 'c', 'd']);
+  });
+
+  it('turns a historical milestone into a scheduled chapter scene', () => {
+    let state = createNewGame(PROFILE, 19170409);
+    state.currentDate = '1917-04-09T06:00:00.000Z';
+    triggerHistory(state, '1917-04-08T00:00:00.000Z', state.currentDate);
+    state.currentEventId = 'history:battle-of-arras';
+    state = resolveChoice(state, 'a');
+
+    const chapter = state.scheduledEvents.find((event) => event.eventId === 'chapter-arras-tunnel')!;
+    expect(chapter).toBeDefined();
+    state.turn = chapter.dueTurn;
+    expect(selectNextEvent(state, new RandomCursor(state.rngState)).id).toBe('chapter-arras-tunnel');
   });
 });

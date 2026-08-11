@@ -25,6 +25,9 @@ export function EventPanel({ state, resolving, onChoose }: EventPanelProps) {
   const choices = availableChoices(state, sourceEvent).map((choice) => localizeChoice(sourceEvent, choice, language));
   const lastEntry = state.journal[state.journal.length - 1];
   const localizedLastEntry = lastEntry ? localizeJournalEntry(lastEntry, state, language) : undefined;
+  const narrativeLabel = event.arcId
+    ? t(event.arcStage === 0 ? 'event.threadBegins' : event.arcStage === 3 ? 'event.threadCloses' : 'event.threadContinues')
+    : event.tags?.includes('chapter') ? t('event.chapter') : undefined;
 
   return (
     <section className={`event-panel event-${event.kind} ${resolving ? 'is-resolving' : ''}`} key={`${event.id}-${state.turn}`}>
@@ -37,7 +40,7 @@ export function EventPanel({ state, resolving, onChoose }: EventPanelProps) {
       <article className="event-paper">
         <header className="event-header">
           <div>
-            <p className="event-kind">{t(`event.kind.${event.kind}` as TranslationKey)}</p>
+            <p className="event-kind">{t(`event.kind.${event.kind}` as TranslationKey)}{narrativeLabel ? ` · ${narrativeLabel}` : ''}</p>
             <h1>{event.title}</h1>
           </div>
           <span className={`source-seal source-${event.source}`}>

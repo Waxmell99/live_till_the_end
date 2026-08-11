@@ -2,6 +2,7 @@ import { HISTORY_TIMELINE } from '../history';
 import { LETTERS } from '../letters';
 import type { GameEvent } from '../../game/types';
 import { COMBAT_EVENTS } from './combat';
+import { CHAPTER_EVENTS, HISTORY_FOLLOWUPS } from './chapters';
 import { makeChoice } from './helpers';
 import { RELATIONSHIP_EVENTS } from './relationships';
 import { ROUTINE_EVENTS } from './routine';
@@ -49,17 +50,17 @@ export const HISTORICAL_EVENTS: GameEvent[] = HISTORY_TIMELINE.filter((record) =
   choices: [
     makeChoice('a', {
       label: 'Read the notice carefully', detail: 'Take in what the official words actually say.', posture: 'careful',
-      effects: { stats: { stress: 2, morale: 1 } },
+      effects: { stats: { stress: 2, morale: 1 }, scheduleEvents: HISTORY_FOLLOWUPS[record.id] ? [{ eventId: HISTORY_FOLLOWUPS[record.id], afterTurns: 2, expiresAfterTurns: 18 }] : undefined },
       outcome: 'The paper gives dates and places. It cannot tell you what tomorrow will ask of you.',
     }, { min: 1, max: 3, unit: 'hours' }),
     makeChoice('b', {
       label: 'Talk it over with Arthur', detail: 'Separate what is known from trench rumour.', posture: 'social',
-      effects: { stats: { stress: -1, morale: 2 }, relationships: { arthur: 3 } },
+      effects: { stats: { stress: -1, morale: 2 }, relationships: { arthur: 3 }, scheduleEvents: HISTORY_FOLLOWUPS[record.id] ? [{ eventId: HISTORY_FOLLOWUPS[record.id], afterTurns: 2, expiresAfterTurns: 18 }] : undefined },
       outcome: 'Arthur is careful with what he does not know. The uncertainty remains, but it has edges.',
     }, { min: 1, max: 3, unit: 'hours' }),
     makeChoice('c', {
       label: 'Return to the day’s work', detail: 'History has not cancelled your duties.', posture: 'duty',
-      effects: { stats: { fatigue: 2, stress: -1 } },
+      effects: { stats: { fatigue: 2, stress: -1 }, scheduleEvents: HISTORY_FOLLOWUPS[record.id] ? [{ eventId: HISTORY_FOLLOWUPS[record.id], afterTurns: 2, expiresAfterTurns: 18 }] : undefined },
       outcome: 'The notice goes into a pocket. Rations, sentry duty, and mud still occupy the day.',
     }, { min: 2, max: 4, unit: 'hours' }),
   ],
@@ -87,6 +88,7 @@ export const PLAY_EVENTS: GameEvent[] = [
   ...COMBAT_EVENTS,
   ...RELATIONSHIP_EVENTS,
   ...LETTER_EVENTS,
+  ...CHAPTER_EVENTS,
 ];
 
 export const ALL_EVENTS: GameEvent[] = [
