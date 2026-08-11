@@ -11,10 +11,10 @@ export function MapPanel({ state }: MapPanelProps) {
   const { language, t } = useLanguage();
   const campaign = currentCampaign(state);
   const location = localizeLocation(state.location, language);
-  const start = Date.parse('1917-02-01T00:00:00.000Z');
-  const end = Date.parse('1918-11-11T11:00:00.000Z');
-  const progress = Math.max(0, Math.min(1, (Date.parse(state.currentDate) - start) / (end - start)));
-  const markerX = 28 + progress * 160;
+  // const start = Date.parse('1917-02-01T00:00:00.000Z');
+  // const end = Date.parse('1918-11-11T11:00:00.000Z');
+  // const progress = Math.max(0, Math.min(1, (Date.parse(state.currentDate) - start) / (end - start)));
+  // const markerX = 28 + progress * 160;
 
   return (
     <section className="map-card" aria-label={t('map.aria', { location })}>
@@ -27,8 +27,8 @@ export function MapPanel({ state }: MapPanelProps) {
         <circle className="map-city" cx="68" cy="48" r="2.8" /><text x="74" y="46">{language === 'zh' ? '伊普尔' : 'YPRES'}</text>
         <circle className="map-city" cx="91" cy="78" r="2.8" /><text x="98" y="77">{language === 'zh' ? '阿拉斯' : 'ARRAS'}</text>
         <circle className="map-city" cx="112" cy="103" r="2.8" /><text x="120" y="106">{language === 'zh' ? '索姆河' : 'SOMME'}</text>
-        <circle className="map-progress" cx={markerX} cy="116" r="3.5" />
-        <line className="map-timeline" x1="28" y1="116" x2="188" y2="116" />
+        {/* <circle className="map-progress" cx={markerX} cy="116" r="3.5" /> */}
+        {/* <line className="map-timeline" x1="28" y1="116" x2="188" y2="116" /> */}
       </svg>
       <p className="map-location"><span>{t('map.position')}</span><strong>{location}</strong></p>
       <p className="map-campaign">{campaign?.campaign ? localizeProfileValue(campaign.campaign, language) : t('map.routine')}</p>
