@@ -1,6 +1,6 @@
 # Survive Until the War Ends
 
-**《活到战争结束》** is a complete browser survival game set on the Western Front from February 1917 to the armistice at 11:00 on 11 November 1918.
+** Survive Until the War Ends ** is a complete browser survival game set on the Western Front from February 1917 to the armistice at 11:00 on 11 November 1918.
 
 You are not a general and cannot redirect history. You are one ordinary British soldier trying to preserve health, judgment, relationships, and enough hope to come home. Quiet weeks, bad food, letters, working parties, rumours, and waiting matter alongside shellfire.
 
