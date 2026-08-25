@@ -146,8 +146,68 @@ export function requirementsMet(state: GameState, requirements?: EventRequiremen
   return true;
 }
 
+/**
+ * Picks a deterministic "random" alive NPC from the section, excluding the given id.
+ * Uses turn number and event id for determinism so the same choice always resolves to the same substitute.
+ * Returns null if no alive NPCs (other than the excluded one) are available.
+ */
+function pickRandomAliveNpc(state: GameState, excludeId?: string): { id: string; name: string } | null {
+  const alive = state.npcs.filter((npc) => npc.status === 'active' && npc.id !== excludeId);
+  if (alive.length === 0) return null;
+  const index = (state.turn * 7 + state.currentEventId.length * 13) % alive.length;
+  const npc = alive[index];
+  return { id: npc.id, name: getNpc(npc.id).name };
+}
+
+/**
+ * If a choice references a specific NPC via npcId and that NPC is no longer active (dead/wounded/etc.),
+ * substitutes the dead NPC's name with a random alive comrade's name and remaps relationship effects.
+ * Returns the original choice unchanged if no substitution is needed or possible.
+ */
+function substituteChoiceNpc(choice: EventChoice, state: GameState): EventChoice {
+  if (!choice.npcId) return choice;
+  const npc = state.npcs.find((n) => n.id === choice.npcId);
+  if (!npc || npc.status === 'active') return choice;
+
+  const substitute = pickRandomAliveNpc(state, choice.npcId);
+  if (!substitute) return choice; // No alive NPC to substitute — keep the original
+
+  const deadNpc = getNpc(choice.npcId);
+  const deadFirstName = deadNpc.name.split(/\s+/)[0];
+  const subFirstName = substitute.name.split(/\s+/)[0];
+
+  // Substitute name in text fields (using first names only, since that's what appears in choice text)
+  const newLabel = choice.label.replaceAll(deadFirstName, subFirstName);
+  const newDetail = choice.detail.replaceAll(deadFirstName, subFirstName);
+  const newOutcome = choice.outcome.replaceAll(deadFirstName, subFirstName);
+
+  // Remap relationship effects from the dead NPC to the substitute
+  let newEffects = choice.effects;
+  if (newEffects?.relationships && newEffects.relationships[choice.npcId] !== undefined) {
+    const { [choice.npcId]: relValue, ...remainingRelationships } = newEffects.relationships;
+    newEffects = {
+      ...newEffects,
+      relationships: {
+        ...remainingRelationships,
+        [substitute.id]: (remainingRelationships[substitute.id] ?? 0) + relValue,
+      },
+    };
+  }
+
+  return {
+    ...choice,
+    npcId: substitute.id,
+    label: newLabel,
+    detail: newDetail,
+    outcome: newOutcome,
+    effects: newEffects,
+  };
+}
+
 export function availableChoices(state: GameState, event: GameEvent = getCurrentEvent(state)): EventChoice[] {
-  return event.choices.filter((choice) => requirementsMet(state, choice.requirements));
+  return event.choices
+    .filter((choice) => requirementsMet(state, choice.requirements))
+    .map((choice) => substituteChoiceNpc(choice, state));
 }
 
 export function getCurrentEvent(state: GameState): GameEvent {

@@ -18,6 +18,7 @@ export interface ChoiceSeed {
   advance?: TimeAdvance;
   outcome: string;
   requirements?: EventRequirements;
+  npcId?: string;
 }
 
 export function makeChoice(id: string, seed: ChoiceSeed, fallbackAdvance: TimeAdvance): EventChoice {
@@ -31,6 +32,7 @@ export function makeChoice(id: string, seed: ChoiceSeed, fallbackAdvance: TimeAd
     advance: seed.advance ?? fallbackAdvance,
     outcome: seed.outcome,
     requirements: seed.requirements,
+    npcId: seed.npcId,
   };
 }
 

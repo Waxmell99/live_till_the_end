@@ -57,6 +57,7 @@ export const HISTORICAL_EVENTS: GameEvent[] = HISTORY_TIMELINE.filter((record) =
       label: 'Talk it over with Arthur', detail: 'Separate what is known from trench rumour.', posture: 'social',
       effects: { stats: { stress: -1, morale: 2 }, relationships: { arthur: 3 }, scheduleEvents: HISTORY_FOLLOWUPS[record.id] ? [{ eventId: HISTORY_FOLLOWUPS[record.id], afterTurns: 2, expiresAfterTurns: 18 }] : undefined },
       outcome: 'Arthur is careful with what he does not know. The uncertainty remains, but it has edges.',
+      npcId: 'arthur',
     }, { min: 1, max: 3, unit: 'hours' }),
     makeChoice('c', {
       label: 'Return to the day’s work', detail: 'History has not cancelled your duties.', posture: 'duty',

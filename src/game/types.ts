@@ -107,6 +107,8 @@ export interface EventChoice {
   risk?: ChoiceRisk;
   advance: TimeAdvance;
   outcome: string;
+  /** Which NPC this choice is about — used to substitute with a random alive comrade if the original is dead. */
+  npcId?: string;
 }
 
 export interface GameEvent {

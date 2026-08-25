@@ -122,6 +122,42 @@ describe('death, NPCs, and endings', () => {
     expect(firstFatalState?.journal.some((entry) => entry.category === 'personnel')).toBe(true);
   });
 
+  it('substitutes a dead NPC with an alive one in choices', () => {
+    const state = createNewGame(PROFILE, 42);
+    // Kill Edward
+    state.npcs = state.npcs.map((npc) => npc.id === 'edward' ? { ...npc, status: 'dead' as const } : npc);
+    state.currentEventId = 'ration-tea';
+
+    const choices = availableChoices(state);
+    const edwardChoice = choices.find((c) => c.npcId === 'edward');
+    // The choice that would have been "Give your mug to Edward" should now
+    // reference a different NPC (not Edward, since he's dead)
+    expect(edwardChoice).toBeUndefined();
+
+    // There should be a choice with npcId set to a different (alive) NPC
+    const substituteChoice = choices.find((c) => c.npcId !== undefined && c.npcId !== 'edward');
+    expect(substituteChoice).toBeDefined();
+    expect(substituteChoice!.label).not.toContain('Edward');
+  });
+
+  it('substitutes NPC name in choice text when the NPC is dead', () => {
+    const state = createNewGame(PROFILE, 42);
+    // Kill Edward
+    state.npcs = state.npcs.map((npc) => npc.id === 'edward' ? { ...npc, status: 'dead' as const } : npc);
+    state.currentEventId = 'ration-tea';
+
+    const choices = availableChoices(state);
+    // The "Give your mug to Edward" choice should be remapped to a different NPC
+    const mugChoice = choices.find((c) => c.label.startsWith('Give your mug to'));
+    expect(mugChoice).toBeDefined();
+    expect(mugChoice!.label).not.toContain('Edward');
+    // The npcId should no longer be 'edward'
+    expect(mugChoice!.npcId).not.toBe('edward');
+    // The npcId should be one of the alive NPCs
+    const aliveIds = ['james', 'arthur', 'george', 'alfie'];
+    expect(aliveIds).toContain(mugChoice!.npcId);
+  });
+
   it('ends at exactly 11:00 on 11 November 1918', () => {
     const state = createNewGame(PROFILE, 19181111);
     state.currentDate = '1918-11-11T10:00:00.000Z';

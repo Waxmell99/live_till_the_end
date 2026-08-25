@@ -7,7 +7,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     text: 'A brazier finally catches. The tea tastes of smoke and the petrol tin it was boiled in, but it is hot.',
     choices: [
       statChoice('Drink it while it is hot', 'Take the small comfort without apology.', 'rest', { morale: 4, fatigue: -3, hunger: -2 }, 'For several minutes, warmth is enough.'),
-      statChoice('Give your mug to Edward', 'He has been shivering since dawn.', 'social', { morale: 2, hunger: 2 }, 'Edward cups the mug in both hands.', { effects: { relationships: { edward: 5 } } }),
+      statChoice('Give your mug to Edward', 'He has been shivering since dawn.', 'social', { morale: 2, hunger: 2 }, 'Edward cups the mug in both hands.', { effects: { relationships: { edward: 5 } }, npcId: 'edward' }),
     ], advance: shortAdvance, tags: ['food', 'quiet'],
   }),
   makeEvent({
@@ -40,7 +40,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     text: 'Beyond the sandbags, Very lights lift the same broken posts out of darkness and put them back again.',
     choices: [
       statChoice('Watch every movement', 'Refuse to let tired eyes wander.', 'duty', { fatigue: 7, stress: 3, morale: 1 }, 'Nothing crosses the wire while you watch.'),
-      statChoice('Share the watch with James', 'One watches while the other rests his eyes.', 'social', { fatigue: 3, stress: -1 }, 'James whispers bad jokes between flares.', { effects: { relationships: { james: 3 } } }),
+      statChoice('Share the watch with James', 'One watches while the other rests his eyes.', 'social', { fatigue: 3, stress: -1 }, 'James whispers bad jokes between flares.', { effects: { relationships: { james: 3 } }, npcId: 'james' }),
     ], advance: shortAdvance, tags: ['night', 'duty'],
   }),
   makeEvent({
@@ -57,7 +57,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     choices: [
       statChoice('Drink your ration', 'Warmth arrives quickly and leaves quickly.', 'rest', { morale: 4, stress: -4, fatigue: 2 }, 'The trench edges soften for a moment.'),
       statChoice('Trade it for bread', 'Another man wants the rum more.', 'careful', { hunger: -6, morale: 1 }, 'You eat the bread slowly.', { effects: { addItems: ['extra_ration'] } }),
-      statChoice('Pass it to George', 'He looks as though he needs it.', 'social', { morale: 2 }, 'George nods once and does not ask why.', { effects: { relationships: { george: 4 } } }),
+      statChoice('Pass it to George', 'He looks as though he needs it.', 'social', { morale: 2 }, 'George nods once and does not ask why.', { effects: { relationships: { george: 4 } }, npcId: 'george' }),
     ], advance: shortAdvance, tags: ['food'],
   }),
   makeEvent({
@@ -65,7 +65,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     text: 'Men stand in a farmyard while a chaplain speaks into the wind. A torn roof lifts and settles behind him.',
     choices: [
       statChoice('Listen', 'Let the familiar words pass over you.', 'rest', { morale: 5, stress: -3 }, 'For a while, nobody asks anything of you.'),
-      statChoice('Stand at the back with James', 'You are present, more or less.', 'social', { morale: 3, stress: -1 }, 'James keeps quiet until the final prayer.', { effects: { relationships: { james: 2 } } }),
+      statChoice('Stand at the back with James', 'You are present, more or less.', 'social', { morale: 3, stress: -1 }, 'James keeps quiet until the final prayer.', { effects: { relationships: { james: 2 } }, npcId: 'james' }),
     ], advance: quietAdvance, tags: ['rest'],
   }),
   makeEvent({
@@ -98,7 +98,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     choices: [
       statChoice('Eat immediately', 'Hunger makes the decision.', 'rest', { hunger: -10, morale: 2 }, 'You scrape the mess tin clean.'),
       statChoice('Save half for night watch', 'Cold stew is still food.', 'careful', { hunger: -5, morale: 1 }, 'You cover half the ration carefully.', { effects: { addItems: ['extra_ration'] } }),
-      statChoice('Split it with Alfie', 'He missed the ration party.', 'social', { hunger: -4, morale: 3 }, 'Alfie remembers the gesture.', { effects: { relationships: { alfie: 5 } } }),
+      statChoice('Split it with Alfie', 'He missed the ration party.', 'social', { hunger: -4, morale: 3 }, 'Alfie remembers the gesture.', { effects: { relationships: { alfie: 5 } }, npcId: 'alfie' }),
     ], advance: quietAdvance, tags: ['food'],
   }),
   makeEvent({
@@ -122,7 +122,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     text: 'Your spoon is gone. Without it, the porridge has become an engineering problem.',
     choices: [
       statChoice('Carve one from a ration crate', 'A blunt knife and patience will do.', 'careful', { fatigue: 2, morale: 2 }, 'It is ugly and entirely yours.'),
-      statChoice('Borrow Arthur’s', 'Wait until he has finished.', 'social', { hunger: 2, morale: 1 }, 'Arthur wipes it on his sleeve and hands it over.', { effects: { relationships: { arthur: 2 } } }),
+      statChoice('Borrow Arthur’s', 'Wait until he has finished.', 'social', { hunger: 2, morale: 1 }, 'Arthur wipes it on his sleeve and hands it over.', { effects: { relationships: { arthur: 2 } }, npcId: 'arthur' }),
     ], advance: quietAdvance, tags: ['food', 'quiet'],
   }),
   makeEvent({
@@ -154,7 +154,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     text: 'The whole line wakes before dawn. Mist rests beyond the parapet, thick enough to hide an army or nothing.',
     choices: [
       statChoice('Keep your respirator ready', 'Discomfort is better than surprise.', 'careful', { fatigue: 4, stress: 2 }, 'The mist thins. It was only mist.'),
-      statChoice('Help Edward settle his breathing', 'Give him something simple to count.', 'social', { fatigue: 3, stress: -2 }, 'His hands stop shaking.', { effects: { relationships: { edward: 4 } } }),
+      statChoice('Help Edward settle his breathing', 'Give him something simple to count.', 'social', { fatigue: 3, stress: -2 }, 'His hands stop shaking.', { effects: { relationships: { edward: 4 } }, npcId: 'edward' }),
     ], advance: shortAdvance, tags: ['duty', 'weather'],
   }),
   makeEvent({
@@ -162,7 +162,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     text: 'A voice begins somewhere beyond the wire. You cannot make out the words, only that the tune is slow.',
     choices: [
       statChoice('Listen without speaking', 'For a moment, the distance seems smaller.', 'rest', { morale: 3, stress: -4 }, 'The song stops before the guns begin again.'),
-      statChoice('Hum a tune from home', 'James quietly finds the harmony.', 'social', { morale: 6, stress: -2 }, 'Three men join in and none finishes.', { effects: { relationships: { james: 3 } } }),
+      statChoice('Hum a tune from home', 'James quietly finds the harmony.', 'social', { morale: 6, stress: -2 }, 'Three men join in and none finishes.', { effects: { relationships: { james: 3 } }, npcId: 'james' }),
     ], advance: quietAdvance, tags: ['night', 'quiet'],
   }),
   makeEvent({
@@ -209,7 +209,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     id: 'frosted-bread', title: 'Frozen bread', kicker: 'Winter morning',
     text: 'The ration bread is hard with frost. George proposes warming it on a shovel above the brazier.',
     choices: [
-      statChoice('Risk the shovel toast', 'Watch closely and turn it often.', 'social', { hunger: -8, morale: 5 }, 'The edges burn. Everyone calls it excellent.', { effects: { relationships: { george: 3 } } }),
+      statChoice('Risk the shovel toast', 'Watch closely and turn it often.', 'social', { hunger: -8, morale: 5 }, 'The edges burn. Everyone calls it excellent.', { effects: { relationships: { george: 3 } }, npcId: 'george' }),
       statChoice('Soak it in tea', 'Practicality before cuisine.', 'rest', { hunger: -6, morale: 2 }, 'It becomes edible by degrees.'),
     ], advance: quietAdvance, requirements: { from: '1917-11-01T00:00:00.000Z', until: '1918-03-15T00:00:00.000Z' }, tags: ['winter', 'food'],
   }),
@@ -242,7 +242,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     id: 'map-crease', title: 'A map with no trench', kicker: 'Orderly dugout',
     text: 'Arthur studies a map that shows a communication trench where there is now only a chain of shell holes.',
     choices: [
-      statChoice('Help mark the real route', 'Memory may be more current than the paper.', 'duty', { fatigue: 3, morale: 3, stress: -1 }, 'Arthur draws a dotted line in the margin.', { effects: { relationships: { arthur: 4 } } }),
+      statChoice('Help mark the real route', 'Memory may be more current than the paper.', 'duty', { fatigue: 3, morale: 3, stress: -1 }, 'Arthur draws a dotted line in the margin.', { effects: { relationships: { arthur: 4 } }, npcId: 'arthur' }),
       statChoice('Leave maps to officers', 'Use the hour to sit down.', 'rest', { fatigue: -4 }, 'The old line remains printed in perfect black ink.'),
     ], advance: quietAdvance, tags: ['map', 'quiet'],
   }),
@@ -267,7 +267,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     text: 'The alarm races down the trench. Men drag on respirators; someone overturns the brazier. No gas follows.',
     choices: [
       statChoice('Keep the mask on until all-clear', 'Obey the drill despite the heat.', 'duty', { fatigue: 5, stress: 4, morale: 1 }, 'The all-clear comes after eleven minutes.'),
-      statChoice('Help check the sentry', 'Find out what he saw.', 'social', { fatigue: 3, stress: 2 }, 'He apologises to nobody. Better a false alarm.', { effects: { relationships: { arthur: 2 } } }),
+      statChoice('Help check the sentry', 'Find out what he saw.', 'social', { fatigue: 3, stress: 2 }, 'He apologises to nobody. Better a false alarm.', { effects: { relationships: { arthur: 2 } }, npcId: 'arthur' }),
     ], advance: shortAdvance, kind: 'survival', tags: ['gas'],
   }),
   makeEvent({
@@ -307,7 +307,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     text: 'Arthur shows you how to turn the heel of a sock. His hands are better at it than anyone expected.',
     choices: [
       statChoice('Learn the stitch', 'Repair your only dry pair.', 'careful', { health: 2, stress: -3, fatigue: 1 }, 'The result is lumpy but serviceable.', { effects: { relationships: { arthur: 3 }, addItems: ['dry_socks'] } }),
-      statChoice('Ask about his daughters', 'Let him talk while he works.', 'social', { morale: 4, stress: -2 }, 'He describes their school shoes in exact detail.', { effects: { relationships: { arthur: 5 } } }),
+      statChoice('Ask about his daughters', 'Let him talk while he works.', 'social', { morale: 4, stress: -2 }, 'He describes their school shoes in exact detail.', { effects: { relationships: { arthur: 5 } }, npcId: 'arthur' }),
     ], advance: quietAdvance, tags: ['quiet'],
   }),
   makeEvent({
@@ -323,7 +323,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     text: 'Snow outlines every strand of wire and broken tree. For a few minutes, the battlefield looks clean.',
     choices: [
       statChoice('Watch the light change', 'Keep the image for later.', 'rest', { morale: 5, stress: -5 }, 'Then the first shell throws up black earth.'),
-      statChoice('Wake Edward to see it', 'Beauty is scarce enough to share.', 'social', { morale: 6, fatigue: 2 }, 'He says it looks like Norfolk and then says it does not.', { effects: { relationships: { edward: 3 } } }),
+      statChoice('Wake Edward to see it', 'Beauty is scarce enough to share.', 'social', { morale: 6, fatigue: 2 }, 'He says it looks like Norfolk and then says it does not.', { effects: { relationships: { edward: 3 } }, npcId: 'edward' }),
     ], advance: quietAdvance, requirements: { from: '1917-11-15T00:00:00.000Z', until: '1918-03-20T00:00:00.000Z' }, tags: ['winter', 'quiet'],
   }),
   makeEvent({
@@ -346,7 +346,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     id: 'salvage-cloth', title: 'A dry groundsheet', kicker: 'Abandoned dugout',
     text: 'Under fallen timber you find a serviceable groundsheet. There is no name on it and nobody nearby to claim it.',
     choices: [
-      statChoice('Take it for the section', 'Shared shelter will keep several men drier.', 'social', { health: 2, morale: 4 }, 'George rigs it above the worst leak.', { effects: { relationships: { george: 3 }, addFlags: ['section_groundsheet'] } }),
+      statChoice('Take it for the section', 'Shared shelter will keep several men drier.', 'social', { health: 2, morale: 4 }, 'George rigs it above the worst leak.', { effects: { relationships: { george: 3 }, addFlags: ['section_groundsheet'] }, npcId: 'george' }),
       statChoice('Leave it where it lies', 'Its owner may return.', 'careful', { morale: 1 }, 'The empty dugout keeps its one useful thing.'),
     ], advance: quietAdvance, tags: ['equipment'],
   }),
@@ -363,7 +363,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     text: 'You wake reaching for your helmet, though the trench is quiet. The explosion was inside the dream.',
     choices: [
       statChoice('Walk to the firestep', 'Cold air may separate waking from sleep.', 'rest', { stress: -4, fatigue: 5, morale: -1 }, 'You watch the dark until your pulse slows.'),
-      statChoice('Wake Arthur', 'Admit you do not want to be alone.', 'social', { stress: -7, fatigue: 3, morale: 2 }, 'Arthur makes tea and asks no questions.', { effects: { relationships: { arthur: 4 } } }),
+      statChoice('Wake Arthur', 'Admit you do not want to be alone.', 'social', { stress: -7, fatigue: 3, morale: 2 }, 'Arthur makes tea and asks no questions.', { effects: { relationships: { arthur: 4 } }, npcId: 'arthur' }),
       statChoice('Force yourself back to sleep', 'There are still two hours before stand-to.', 'rest', { fatigue: -3, stress: 2 }, 'Sleep returns in short pieces.'),
     ], advance: shortAdvance, kind: 'survival', requirements: { minStats: { stress: 45 } }, tags: ['stress', 'night'],
   }),
@@ -387,7 +387,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     id: 'broken-watch', title: 'Edward’s watch', kicker: 'A small disaster',
     text: 'Edward’s pocket watch has stopped. He winds it until Arthur takes it gently from his hands.',
     choices: [
-      statChoice('Help open the case', 'A grain of trench dirt may be the culprit.', 'social', { fatigue: 2, morale: 3 }, 'The second hand stutters and begins again.', { effects: { relationships: { edward: 5 } } }),
+      statChoice('Help open the case', 'A grain of trench dirt may be the culprit.', 'social', { fatigue: 2, morale: 3 }, 'The second hand stutters and begins again.', { effects: { relationships: { edward: 5 } }, npcId: 'edward' }),
       statChoice('Tell him time hardly matters here', 'You mean it as comfort.', 'careful', { morale: -1, stress: -1 }, 'He puts the silent watch away.', { effects: { relationships: { edward: -2 } } }),
     ], advance: quietAdvance, requirements: { npcActive: 'edward' }, tags: ['quiet'],
   }),
@@ -396,7 +396,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     text: 'George threads a scrap of cloth through candle grease in a tin. The flame is poor but steady.',
     choices: [
       statChoice('Use the light to mend kit', 'Finish one useful task.', 'duty', { fatigue: 3, stress: -2, morale: 2 }, 'The shadows jump while you sew.'),
-      statChoice('Tell stories around it', 'Nobody needs much light for that.', 'social', { morale: 7, stress: -4, fatigue: 1 }, 'The little flame becomes a hearth.', { effects: { relationships: { george: 3, james: 2 } } }),
+      statChoice('Tell stories around it', 'Nobody needs much light for that.', 'social', { morale: 7, stress: -4, fatigue: 1 }, 'The little flame becomes a hearth.', { effects: { relationships: { george: 3, james: 2 } }, npcId: 'george' }),
     ], advance: quietAdvance, tags: ['quiet', 'night'],
   }),
   makeEvent({
@@ -435,8 +435,8 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     id: 'clean-bandage', title: 'One clean field dressing', kicker: 'Kit check',
     text: 'Your field dressing packet has split at one corner. Alfie offers a sound spare in exchange for nothing.',
     choices: [
-      statChoice('Accept it', 'Good equipment is not pride.', 'careful', { morale: 2 }, 'You put the sealed packet where either hand can reach it.', { effects: { relationships: { alfie: 3 }, addItems: ['field_dressing'] } }),
-      statChoice('Tell him to keep the spare', 'A stretcher-bearer may need it first.', 'social', { morale: 3 }, 'Alfie calls you an idiot with some affection.', { effects: { relationships: { alfie: 4 } } }),
+      statChoice('Accept it', 'Good equipment is not pride.', 'careful', { morale: 2 }, 'You put the sealed packet where either hand can reach it.', { effects: { relationships: { alfie: 3 }, addItems: ['field_dressing'] }, npcId: 'alfie' }),
+      statChoice('Tell him to keep the spare', 'A stretcher-bearer may need it first.', 'social', { morale: 3 }, 'Alfie calls you an idiot with some affection.', { effects: { relationships: { alfie: 4 } }, npcId: 'alfie' }),
     ], advance: quietAdvance, tags: ['equipment'],
   }),
   makeEvent({
@@ -468,7 +468,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     text: 'The quartermaster announces that bread and meat will be halved until the road is open again.',
     choices: [
       statChoice('Eat your saved ration', 'This is why you kept it.', 'careful', { hunger: -8, morale: 3 }, 'The biscuit is stale and welcome.', { requirements: { itemsAll: ['extra_ration'] }, effects: { removeItems: ['extra_ration'] } }),
-      statChoice('Share what arrives evenly', 'Nobody eats well; nobody goes without.', 'social', { hunger: 6, morale: 4 }, 'George divides the bread with geometric care.', { effects: { relationships: { george: 3 } } }),
+      statChoice('Share what arrives evenly', 'Nobody eats well; nobody goes without.', 'social', { hunger: 6, morale: 4 }, 'George divides the bread with geometric care.', { effects: { relationships: { george: 3 } }, npcId: 'george' }),
       statChoice('Keep your full portion', 'Your body needs every crumb.', 'bold', { hunger: 2, morale: -3 }, 'No one argues, but the silence has weight.'),
     ], advance: shortAdvance, kind: 'survival', tags: ['food'],
   }),
@@ -477,7 +477,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     text: 'Men at the aid post speak of an influenza spreading through camps and towns. Two empty places appear at breakfast.',
     choices: [
       statChoice('Wash and avoid shared mugs', 'Precautions are imperfect, not pointless.', 'careful', { health: 2, stress: 2, morale: -1 }, 'You become conscious of every cough.'),
-      statChoice('Help Alfie carry supplies', 'The aid post needs hands.', 'duty', { fatigue: 7, morale: 4, stress: 3 }, 'You work among hot faces and rough blankets.', { effects: { relationships: { alfie: 5 } }, risk: { danger: 0.07, fatality: 0.03, healthLoss: [12, 28], cause: 'influenza' } }),
+      statChoice('Help Alfie carry supplies', 'The aid post needs hands.', 'duty', { fatigue: 7, morale: 4, stress: 3 }, 'You work among hot faces and rough blankets.', { effects: { relationships: { alfie: 5 } }, risk: { danger: 0.07, fatality: 0.03, healthLoss: [12, 28], cause: 'influenza' }, npcId: 'alfie' }),
     ], advance: quietAdvance, kind: 'survival', requirements: { from: '1918-05-01T00:00:00.000Z' }, tags: ['health'],
   }),
   makeEvent({
@@ -509,7 +509,7 @@ export const ROUTINE_EVENTS: GameEvent[] = [
     text: 'There is one dry match in the dugout and three pipes waiting. James holds it like a sacred object.',
     choices: [
       statChoice('Light the brazier instead', 'Hot water can serve everyone.', 'social', { morale: 6, hunger: -2, fatigue: -2 }, 'The flame catches on the second scrap of paper.', { effects: { relationships: { james: 2, george: 2 } } }),
-      statChoice('Let James choose', 'It is his match.', 'social', { morale: 4, stress: -2 }, 'He lights Arthur’s pipe and passes it around.'),
+      statChoice('Let James choose', 'It is his match.', 'social', { morale: 4, stress: -2 }, 'He lights Arthur’s pipe and passes it around.', { npcId: 'james' }),
     ], advance: quietAdvance, tags: ['quiet'],
   }),
 ];
