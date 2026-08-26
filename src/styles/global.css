@@ -881,6 +881,25 @@ input:focus-visible {
   line-height: 1.45;
 }
 
+.resolution-risk {
+  display: flex;
+  grid-column: 2;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.7rem;
+  color: #8f8a77;
+  font: 0.56rem/1.45 var(--mono);
+}
+
+.resolution-risk b {
+  color: #c5bfa8;
+}
+
+.resolution-risk span {
+  font: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .event-paper {
   position: relative;
   min-height: calc(100% - 62px);
@@ -1016,7 +1035,7 @@ input:focus-visible {
 .choice {
   display: grid;
   grid-template-columns: 38px 1fr auto;
-  align-items: center;
+  align-items: start;
   width: 100%;
   padding: 0.85rem 0.9rem;
   border: 1px solid rgba(47, 46, 37, 0.23);
@@ -1049,6 +1068,84 @@ input:focus-visible {
   gap: 0.2rem;
 }
 
+.consequence-preview {
+  display: grid;
+  gap: 0.42rem;
+  margin-top: 0.35rem;
+}
+
+.consequence-group {
+  display: grid;
+  grid-template-columns: 5.2rem 1fr;
+  gap: 0.25rem 0.55rem;
+  padding-top: 0.42rem;
+  border-top: 1px solid rgba(47, 46, 37, 0.14);
+}
+
+.consequence-group > strong {
+  color: rgba(61, 59, 47, 0.7);
+  font: 700 0.52rem/1.45 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.consequence-chips,
+.risk-heading,
+.risk-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.35rem;
+}
+
+.consequence-chips span,
+.risk-heading span,
+.risk-reasons span {
+  padding: 0.12rem 0.32rem;
+  border: 1px solid rgba(47, 46, 37, 0.13);
+  color: var(--ink-soft);
+  background: rgba(255, 255, 255, 0.13);
+  font: 0.54rem/1.4 var(--mono);
+}
+
+.consequence-chips .benefit,
+.risk-reasons .lowers {
+  border-color: rgba(55, 96, 66, 0.24);
+  color: #365c3e;
+  background: rgba(72, 117, 81, 0.08);
+}
+
+.consequence-chips .cost,
+.risk-reasons .raises,
+.risk-outcomes span {
+  border-color: rgba(132, 56, 43, 0.22);
+  color: #7d392f;
+  background: rgba(132, 56, 43, 0.06);
+}
+
+.consequence-chips .story-effect {
+  border-color: rgba(69, 76, 105, 0.24);
+  color: #444b66;
+  background: rgba(69, 76, 105, 0.07);
+}
+
+.risk-heading {
+  align-items: center;
+}
+
+.risk-heading em {
+  padding-right: 0.3rem;
+}
+
+.risk-reasons {
+  grid-column: 2;
+  align-items: center;
+}
+
+.risk-reasons b {
+  color: rgba(61, 59, 47, 0.64);
+  font: 600 0.52rem var(--mono);
+}
+
 .choice-copy b {
   font-size: 0.88rem;
   font-weight: 700;
@@ -1068,6 +1165,7 @@ input:focus-visible {
 }
 
 .choice-arrow {
+  margin-top: 0.2rem;
   color: var(--ink-soft);
   font-family: var(--mono);
 }
@@ -2189,6 +2287,18 @@ input:focus-visible {
   .previous-outcome {
     grid-template-columns: 1fr;
     gap: 0.25rem;
+  }
+
+  .resolution-risk {
+    grid-column: 1;
+  }
+
+  .consequence-group {
+    grid-template-columns: 1fr;
+  }
+
+  .risk-reasons {
+    grid-column: 1;
   }
 
   .dossier-overlay {

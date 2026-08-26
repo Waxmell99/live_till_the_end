@@ -12,6 +12,7 @@ import {
   applyStatEffects,
   availableChoices,
   createNewGame,
+  getChoiceConsequencePreview,
   getCurrentEvent,
   requirementsMet,
   resolveChoice,
@@ -76,6 +77,26 @@ describe('time and attributes', () => {
     expect(next.npcs.find((npc) => npc.id === 'james')?.relationship).toBeGreaterThan(38);
     expect(next.journal.some((entry) => entry.title === 'The road ends at the trenches')).toBe(true);
   });
+
+  it('previews clamped stat, relationship, item, and time effects exactly', () => {
+    const state = createNewGame(PROFILE, 20260826);
+    state.currentEventId = 'boots-drying';
+    state.stats.health = 99;
+    const event = getCurrentEvent(state);
+    const preview = getChoiceConsequencePreview(state, availableChoices(state, event)[0], event);
+
+    expect(preview.stats).toEqual([
+      { key: 'health', delta: 1 },
+      { key: 'stress', delta: -2 },
+      { key: 'fatigue', delta: 2 },
+    ]);
+    expect(preview.addedItems).toEqual(['dry_socks']);
+    expect(preview.advance).toEqual({ min: 7, max: 14, unit: 'days' });
+
+    state.currentEventId = 'ration-tea';
+    const social = availableChoices(state)[1];
+    expect(getChoiceConsequencePreview(state, social).relationships).toEqual([{ npcId: 'edward', delta: 5 }]);
+  });
 });
 
 describe('historical timeline', () => {
@@ -99,6 +120,39 @@ describe('historical timeline', () => {
 });
 
 describe('death, NPCs, and endings', () => {
+  it('uses post-choice condition for the displayed risk and records the resolved explanation', () => {
+    const state = createNewGame(PROFILE, 20260826);
+    state.currentEventId = 'bombardment-dugout';
+    state.stats.fatigue = 69;
+    state.luck = 50;
+    state.weather = 'A pale, dry morning';
+    const event = getCurrentEvent(state);
+    const choice = availableChoices(state, event)[0];
+    const preview = getChoiceConsequencePreview(state, choice, event);
+
+    expect(preview.risk?.exposure).toEqual({ min: 0.108, max: 0.108 });
+    expect(preview.risk?.fatality.min).toBeCloseTo(0.0378);
+    expect(preview.risk?.factors).toContainEqual({ key: 'highFatigue', direction: 'raises', percent: 20 });
+
+    const resolved = resolveChoice(state, choice.id);
+    const entry = resolved.journal.find((candidate) => candidate.eventId === event.id);
+    expect(entry?.riskAssessment?.exposurePercent).toBe(10.8);
+    expect(entry?.riskAssessment?.factors).toContainEqual({ key: 'highFatigue', direction: 'raises', percent: 20 });
+  });
+
+  it('shows protective equipment in the same risk calculation used by gas resolution', () => {
+    const state = createNewGame(PROFILE, 17);
+    state.currentEventId = 'gas-cloud';
+    state.luck = 50;
+    state.weather = 'Clear sky above the guns';
+    const event = getCurrentEvent(state);
+    const choice = availableChoices(state, event)[0];
+    const preview = getChoiceConsequencePreview(state, choice, event);
+
+    expect(preview.risk?.factors).toContainEqual({ key: 'protectiveEquipment', direction: 'lowers', percent: 62 });
+    expect(preview.risk!.exposure.max).toBeLessThan(choice.risk!.danger);
+  });
+
   it('ends a life whose health reaches zero', () => {
     const state = createNewGame(PROFILE, 7);
     state.stats.health = 0;

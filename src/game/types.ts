@@ -175,6 +175,29 @@ export interface ScheduledEvent {
   expiresTurn: number;
 }
 
+export type RiskFactorKey =
+  | 'lowHealth'
+  | 'highFatigue'
+  | 'highStress'
+  | 'lowMorale'
+  | 'battlefieldChance'
+  | 'carefulPosture'
+  | 'boldPosture'
+  | 'restPosture'
+  | 'badWeather'
+  | 'protectiveEquipment';
+
+export interface RiskFactor {
+  key: RiskFactorKey;
+  direction: 'raises' | 'lowers';
+  percent: number;
+}
+
+export interface RiskAssessmentSnapshot {
+  exposurePercent: number;
+  factors: RiskFactor[];
+}
+
 export interface JournalEntry {
   id: string;
   date: string;
@@ -186,6 +209,7 @@ export interface JournalEntry {
   historyId?: string;
   npcId?: string;
   endingType?: EndingType;
+  riskAssessment?: RiskAssessmentSnapshot;
 }
 
 export type EndingType = 'killed' | 'wounds' | 'invalided' | 'pow' | 'survived';

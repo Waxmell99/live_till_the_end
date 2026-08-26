@@ -16,6 +16,7 @@ import type {
   HistoricalRecord,
   JournalEntry,
   NpcState,
+  RiskFactor,
   StatKey,
   Stats,
   TimeAdvance,
@@ -220,14 +221,21 @@ function advanceMilliseconds(advance: TimeAdvance, rng: RandomCursor): number {
   return amount * multiplier;
 }
 
-export function advanceGameTime(currentDate: string, advance: TimeAdvance, rng: RandomCursor): string {
+function advanceByAmount(currentDate: string, advance: TimeAdvance, amount: number): string {
+  const multiplier = advance.unit === 'days' ? 86_400_000 : advance.unit === 'hours' ? 3_600_000 : 60_000;
   const current = Date.parse(currentDate);
-  let next = current + advanceMilliseconds(advance, rng);
+  let next = current + amount * multiplier;
   const finalHour = Date.parse(FINAL_HOUR);
   const armistice = Date.parse(ARMISTICE_DATE);
   if (current < finalHour && next >= finalHour) next = finalHour;
   if (next > armistice) next = armistice;
   return new Date(next).toISOString();
+}
+
+export function advanceGameTime(currentDate: string, advance: TimeAdvance, rng: RandomCursor): string {
+  const elapsed = advanceMilliseconds(advance, rng);
+  const multiplier = advance.unit === 'days' ? 86_400_000 : advance.unit === 'hours' ? 3_600_000 : 60_000;
+  return advanceByAmount(currentDate, advance, elapsed / multiplier);
 }
 
 function addUnique(target: string[], values: string[]): string[] {
@@ -319,19 +327,137 @@ function applyTimePressure(state: GameState, from: string, to: string, event: Ga
   if (state.stats.stress > 82) state.stats.morale = clamp(state.stats.morale - 2);
 }
 
-function riskModifier(state: GameState, choice: EventChoice): number {
+interface ChanceRange {
+  min: number;
+  max: number;
+}
+
+export interface ChoiceRiskAssessment {
+  exposure: ChanceRange;
+  injury: ChanceRange;
+  fatality: ChanceRange;
+  capture: ChanceRange;
+  comradeIncident?: ChanceRange;
+  factors: RiskFactor[];
+}
+
+export interface ChoiceConsequencePreview {
+  stats: Array<{ key: StatKey; delta: number }>;
+  relationships: Array<{ npcId: string; delta: number }>;
+  addedItems: string[];
+  removedItems: string[];
+  advance: TimeAdvance;
+  affectsStory: boolean;
+  risk?: ChoiceRiskAssessment;
+}
+
+interface CalculatedRisk {
+  exposure: number;
+  injury: number;
+  fatality: number;
+  capture: number;
+  comradeIncident?: number;
+  factors: RiskFactor[];
+}
+
+function riskModifier(state: GameState, choice: EventChoice): { value: number; factors: RiskFactor[] } {
   let modifier = 1;
-  if (state.stats.health < 45) modifier += 0.16;
-  if (state.stats.fatigue > 70) modifier += 0.2;
-  if (state.stats.stress > 72) modifier += 0.16;
-  if (state.stats.morale < 25) modifier += 0.08;
-  modifier += (50 - state.luck) / 220;
-  if (choice.posture === 'careful') modifier *= 0.8;
-  if (choice.posture === 'bold') modifier *= 1.16;
-  if (choice.posture === 'rest') modifier *= 0.9;
-  if (state.weather.includes('rain') || state.weather.includes('Sleet')) modifier *= 1.06;
-  if (choice.risk?.mitigationItem && state.inventory.includes(choice.risk.mitigationItem)) modifier *= 0.38;
-  return Math.max(0.35, modifier);
+  const factors: RiskFactor[] = [];
+  const add = (key: RiskFactor['key'], amount: number) => {
+    modifier += amount;
+    factors.push({ key, direction: amount >= 0 ? 'raises' : 'lowers', percent: Math.round(Math.abs(amount) * 100) });
+  };
+  const multiply = (key: RiskFactor['key'], amount: number) => {
+    modifier *= amount;
+    factors.push({ key, direction: amount >= 1 ? 'raises' : 'lowers', percent: Math.round(Math.abs(amount - 1) * 100) });
+  };
+
+  if (state.stats.health < 45) add('lowHealth', 0.16);
+  if (state.stats.fatigue > 70) add('highFatigue', 0.2);
+  if (state.stats.stress > 72) add('highStress', 0.16);
+  if (state.stats.morale < 25) add('lowMorale', 0.08);
+  const chance = (50 - state.luck) / 220;
+  if (Math.abs(chance) >= 0.005) add('battlefieldChance', chance);
+  if (choice.posture === 'careful') multiply('carefulPosture', 0.8);
+  if (choice.posture === 'bold') multiply('boldPosture', 1.16);
+  if (choice.posture === 'rest') multiply('restPosture', 0.9);
+  if (state.weather.includes('rain') || state.weather.includes('Sleet')) multiply('badWeather', 1.06);
+  if (choice.risk?.mitigationItem && state.inventory.includes(choice.risk.mitigationItem)) multiply('protectiveEquipment', 0.38);
+  return { value: Math.max(0.35, modifier), factors };
+}
+
+function calculateRisk(state: GameState, choice: EventChoice): CalculatedRisk | undefined {
+  const risk = choice.risk;
+  if (!risk) return undefined;
+  const modifier = riskModifier(state, choice);
+  const exposure = Math.min(0.65, risk.danger * modifier.value);
+  const captureShare = Math.max(0, Math.min(1, risk.capture ?? 0));
+  const fatalityShare = Math.max(0, Math.min(1 - captureShare, risk.fatality ?? 0.2));
+  const capture = exposure * captureShare;
+  const fatality = exposure * fatalityShare;
+  const injury = exposure * Math.max(0, 1 - captureShare - fatalityShare);
+  const canReachComradeRoll = 1 - capture - fatality;
+  const comradeIncident = risk.npcDanger && state.npcs.some((npc) => npc.status === 'active')
+    ? Math.min(0.22, risk.npcDanger * modifier.value) * canReachComradeRoll
+    : undefined;
+  return { exposure, injury, fatality, capture, comradeIncident, factors: modifier.factors };
+}
+
+function range(first: number, second: number): ChanceRange {
+  return { min: Math.min(first, second), max: Math.max(first, second) };
+}
+
+export function getChoiceConsequencePreview(
+  state: GameState,
+  choice: EventChoice,
+  event: GameEvent = getCurrentEvent(state),
+): ChoiceConsequencePreview {
+  const afterEffects = structuredClone(state);
+  applyEffects(afterEffects, choice.effects);
+  const stats = STAT_KEYS.map((key) => ({ key, delta: afterEffects.stats[key] - state.stats[key] }))
+    .filter(({ delta }) => delta !== 0);
+  const relationships = afterEffects.npcs.map((npc) => ({
+    npcId: npc.id,
+    delta: npc.relationship - (state.npcs.find((current) => current.id === npc.id)?.relationship ?? npc.relationship),
+  })).filter(({ delta }) => delta !== 0);
+  const addedItems = afterEffects.inventory.filter((item) => !state.inventory.includes(item));
+  const removedItems = state.inventory.filter((item) => !afterEffects.inventory.includes(item));
+  const affectsStory = Boolean(
+    choice.effects?.addFlags?.length
+    || choice.effects?.removeFlags?.length
+    || choice.effects?.receiveLetter
+    || choice.effects?.setArcStages
+    || choice.effects?.scheduleEvents?.length,
+  );
+
+  let risk: ChoiceRiskAssessment | undefined;
+  if (choice.risk) {
+    const states = [choice.advance.min, choice.advance.max].map((amount) => {
+      const candidate = structuredClone(afterEffects);
+      const nextDate = event.id === 'last-morning-fire'
+        ? '1918-11-11T10:58:00.000Z'
+        : advanceByAmount(state.currentDate, choice.advance, amount);
+      applyTimePressure(candidate, state.currentDate, nextDate, event);
+      return calculateRisk(candidate, choice)!;
+    });
+    const [minimum, maximum] = states;
+    const factorMap = new Map<string, RiskFactor>();
+    for (const factor of [...minimum.factors, ...maximum.factors]) {
+      factorMap.set(`${factor.key}:${factor.direction}`, factor);
+    }
+    risk = {
+      exposure: range(minimum.exposure, maximum.exposure),
+      injury: range(minimum.injury, maximum.injury),
+      fatality: range(minimum.fatality, maximum.fatality),
+      capture: range(minimum.capture, maximum.capture),
+      comradeIncident: minimum.comradeIncident !== undefined && maximum.comradeIncident !== undefined
+        ? range(minimum.comradeIncident, maximum.comradeIncident)
+        : undefined,
+      factors: [...factorMap.values()],
+    };
+  }
+
+  return { stats, relationships, addedItems, removedItems, advance: choice.advance, affectsStory, risk };
 }
 
 function npcIncident(state: GameState, rng: RandomCursor, directChance: number, messages: string[]): void {
@@ -437,7 +563,7 @@ function endGame(state: GameState, type: Ending['type'], cause: string, finalEve
 function resolveRisk(state: GameState, choice: EventChoice, rng: RandomCursor, messages: string[]): void {
   const risk = choice.risk;
   if (!risk) return;
-  const danger = Math.min(0.65, risk.danger * riskModifier(state, choice));
+  const danger = calculateRisk(state, choice)!.exposure;
   if (rng.next() < danger) {
     const outcome = rng.next();
     const capture = risk.capture ?? 0;
@@ -469,7 +595,7 @@ function resolveRisk(state: GameState, choice: EventChoice, rng: RandomCursor, m
       return;
     }
   }
-  npcIncident(state, rng, Math.min(0.22, (risk.npcDanger ?? 0) * riskModifier(state, choice)), messages);
+  npcIncident(state, rng, Math.min(0.22, (risk.npcDanger ?? 0) * riskModifier(state, choice).value), messages);
 }
 
 export function triggerHistory(state: GameState, from: string, to: string): HistoricalRecord[] {
@@ -627,6 +753,7 @@ export function resolveChoice(input: GameState, choiceId: string): GameState {
     ? '1918-11-11T10:58:00.000Z'
     : advanceGameTime(state.currentDate, choice.advance, rng);
   applyTimePressure(state, previousDate, state.currentDate, event);
+  const resolvedRisk = calculateRisk(state, choice);
   resolveRisk(state, choice, rng, messages);
   if (isFinalHourEvent && state.status === 'playing') state.currentDate = ARMISTICE_DATE;
   if (state.status === 'playing') maybeRecoverNpc(state, rng, messages);
@@ -647,6 +774,10 @@ export function resolveChoice(input: GameState, choiceId: string): GameState {
     category: event.kind,
     eventId: event.id,
     choiceId: choice.id,
+    riskAssessment: resolvedRisk ? {
+      exposurePercent: Math.round(resolvedRisk.exposure * 1000) / 10,
+      factors: resolvedRisk.factors,
+    } : undefined,
   });
   state.lastResolution = messages;
   state.recentEventIds = [event.id, ...state.recentEventIds.filter((id) => id !== event.id)].slice(0, 7);

@@ -86,5 +86,15 @@ export function statChoice(
   outcome: string,
   extras: Partial<ChoiceSeed> = {},
 ): ChoiceSeed {
-  return { label, detail, posture, effects: { stats, ...extras.effects }, outcome, ...extras };
+  return {
+    label,
+    detail,
+    posture,
+    outcome,
+    ...extras,
+    effects: {
+      ...extras.effects,
+      stats: { ...stats, ...extras.effects?.stats },
+    },
+  };
 }
