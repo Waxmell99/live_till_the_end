@@ -102,6 +102,12 @@ export function EventPanel({ state, resolving, onChoose }: EventPanelProps) {
         <div className="event-narrative">
           {event.text.map((paragraph, index) => <p key={index}>{renderNarrative(paragraph, state)}</p>)}
         </div>
+        {event.arcId && (event.recap || event.nextHint) && (
+          <aside className="story-context">
+            {event.recap && <p><b>{t('event.recap')}</b>{renderNarrative(event.recap, state)}</p>}
+            {event.nextHint && <p><b>{t('event.nextHint')}</b>{renderNarrative(event.nextHint, state)}</p>}
+          </aside>
+        )}
         <div className="choice-section">
           <p className="choice-prompt">{t('event.prompt')}</p>
           <div className="choice-list">
@@ -141,12 +147,6 @@ export function EventPanel({ state, resolving, onChoose }: EventPanelProps) {
                           {preview.removedItems.map((item) => (
                             <span key={`remove-${item}`} className="cost">{t('event.itemUse', { item: t(`item.${item}` as TranslationKey) })}</span>
                           ))}
-                          <span className="neutral">
-                            {t('event.time')}: {t(`event.time.${preview.advance.unit}` as TranslationKey, {
-                              min: preview.advance.min,
-                              max: preview.advance.max,
-                            })}
-                          </span>
                           {preview.affectsStory && <span className="story-effect">{t('event.storyMemory')}</span>}
                         </div>
                       </div>

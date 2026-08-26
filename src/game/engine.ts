@@ -25,6 +25,7 @@ import type {
 const FINAL_HOUR = '1918-11-11T10:00:00.000Z';
 const STAT_KEYS: StatKey[] = ['health', 'morale', 'stress', 'hunger', 'fatigue'];
 const STORY_ARC_IDS = ['james', 'arthur', 'edward', 'george', 'alfie'];
+const INTERRUPTIBLE_STORY_ARCS = new Set(['edward', 'george']);
 
 export function clamp(value: number, min = 0, max = 100): number {
   return Math.max(min, Math.min(max, Math.round(value)));
@@ -126,6 +127,13 @@ export function requirementsMet(state: GameState, requirements?: EventRequiremen
   if (requirements.npcActive) {
     const npc = state.npcs.find((candidate) => candidate.id === requirements.npcActive);
     if (!npc || npc.status !== 'active') return false;
+  }
+  if (requirements.npcStatuses) {
+    for (const [id, allowed] of Object.entries(requirements.npcStatuses)) {
+      const status = state.npcs.find((npc) => npc.id === id)?.status;
+      const statuses = Array.isArray(allowed) ? allowed : [allowed];
+      if (!status || !statuses.includes(status)) return false;
+    }
   }
   if (requirements.minRelationships) {
     for (const [id, value] of Object.entries(requirements.minRelationships)) {
@@ -276,6 +284,27 @@ function ensureNarrativeState(state: GameState): void {
   }
 }
 
+function storyArcForScheduledEvent(eventId: string): string | undefined {
+  try {
+    return eventById(eventId).arcId;
+  } catch {
+    return undefined;
+  }
+}
+
+function scheduleInterruptedStoryClosure(state: GameState, npcId: string, status: NpcState['status']): void {
+  if (!INTERRUPTIBLE_STORY_ARCS.has(npcId) || status === 'active') return;
+  const stage = state.storyArcs[npcId] ?? 0;
+  if (stage <= 0 || stage >= 4) return;
+  const eventId = `${npcId}-story-${status}`;
+  state.scheduledEvents = state.scheduledEvents.filter((item) => storyArcForScheduledEvent(item.eventId) !== npcId);
+  state.scheduledEvents.push({ eventId, dueTurn: state.turn + 1, expiresTurn: state.turn + 16 });
+}
+
+function ensureInterruptedStoryClosures(state: GameState): void {
+  for (const npc of state.npcs) scheduleInterruptedStoryClosure(state, npc.id, npc.status);
+}
+
 function applyEffects(state: GameState, effects?: ChoiceEffects): void {
   if (!effects) return;
   state.stats = applyStatEffects(state.stats, effects.stats);
@@ -290,6 +319,13 @@ function applyEffects(state: GameState, effects?: ChoiceEffects): void {
   if (effects.addFlags) state.flags = addUnique(state.flags, effects.addFlags);
   if (effects.removeFlags) state.flags = removeValues(state.flags, effects.removeFlags);
   if (effects.setArcStages) state.storyArcs = { ...state.storyArcs, ...effects.setArcStages };
+  if (effects.setNpcStatuses) {
+    state.npcs = state.npcs.map((npc) => effects.setNpcStatuses?.[npc.id] ? {
+      ...npc,
+      status: effects.setNpcStatuses[npc.id],
+      statusDate: state.currentDate,
+    } : npc);
+  }
   if (effects.scheduleEvents) {
     for (const scheduled of effects.scheduleEvents) {
       const dueTurn = state.turn + Math.max(1, scheduled.afterTurns);
@@ -349,7 +385,6 @@ export interface ChoiceConsequencePreview {
   relationships: Array<{ npcId: string; delta: number }>;
   addedItems: string[];
   removedItems: string[];
-  advance: TimeAdvance;
   affectsStory: boolean;
   risk?: ChoiceRiskAssessment;
 }
@@ -559,6 +594,7 @@ export function getChoiceConsequencePreview(
     || choice.effects?.removeFlags?.length
     || choice.effects?.receiveLetter
     || choice.effects?.setArcStages
+    || choice.effects?.setNpcStatuses
     || choice.effects?.scheduleEvents?.length,
   );
 
@@ -595,7 +631,7 @@ export function getChoiceConsequencePreview(
     };
   }
 
-  return { stats, relationships, addedItems, removedItems, advance: choice.advance, affectsStory, risk };
+  return { stats, relationships, addedItems, removedItems, affectsStory, risk };
 }
 
 function npcIncident(state: GameState, rng: RandomCursor, npcId: string | undefined, directChance: number, messages: string[]): void {
@@ -625,6 +661,7 @@ function npcIncident(state: GameState, rng: RandomCursor, npcId: string | undefi
     statusDate: state.currentDate,
     epitaph,
   } : npc);
+  scheduleInterruptedStoryClosure(state, selected.id, status);
   state.journal.push({
     id: `npc-${selected.id}-${state.turn}`,
     date: state.currentDate,
@@ -806,6 +843,7 @@ function maybeRecoverNpc(state: GameState, rng: RandomCursor, messages: string[]
     status: returns ? 'active' : 'transferred',
     epitaph: returns ? undefined : `Wounded near ${state.location}; transferred after treatment.`,
   } : candidate);
+  if (!returns) scheduleInterruptedStoryClosure(state, npc.id, 'transferred');
   messages.push(returns ? `${definition.name} returns to the section, thinner but walking.` : `${definition.name} will not return to the section after treatment.`);
 }
 
@@ -904,6 +942,7 @@ export function resolveChoice(input: GameState, choiceId: string): GameState {
   if (input.status !== 'playing') return input;
   const state = structuredClone(input);
   ensureNarrativeState(state);
+  ensureInterruptedStoryClosures(state);
   const event = getCurrentEvent(state);
   const choice = availableChoices(state, event).find((candidate) => candidate.id === choiceId);
   if (!choice) throw new Error(`Choice ${choiceId} is unavailable for event ${event.id}`);

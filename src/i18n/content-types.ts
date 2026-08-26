@@ -5,6 +5,8 @@ export interface EventTranslation {
   kicker: string;
   text: string[];
   choices: ChoiceTranslation[];
+  recap?: string;
+  nextHint?: string;
 }
 
 export function translatedEvent(
@@ -12,6 +14,7 @@ export function translatedEvent(
   kicker: string,
   text: string | string[],
   choices: ChoiceTranslation[],
+  story?: { recap?: string; nextHint?: string },
 ): EventTranslation {
-  return { title, kicker, text: Array.isArray(text) ? text : [text], choices };
+  return { title, kicker, text: Array.isArray(text) ? text : [text], choices, ...story };
 }

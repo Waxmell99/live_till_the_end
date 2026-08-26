@@ -148,6 +148,8 @@ export function localizeEvent(event: GameEvent, language: Language): GameEvent {
     title: translated.title,
     kicker: translated.kicker,
     text: translated.text,
+    recap: translated.recap ?? event.recap,
+    nextHint: translated.nextHint ?? event.nextHint,
     choices: event.choices.map((choice, index) => {
       const localized = translated.choices[index];
       return localized ? { ...choice, label: localized[0], detail: localized[1], outcome: localized[2] } : choice;

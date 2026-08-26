@@ -86,7 +86,7 @@ describe('time and attributes', () => {
     expect(next.journal.some((entry) => entry.title === 'The road ends at the trenches')).toBe(true);
   });
 
-  it('previews clamped stat, relationship, item, and time effects exactly', () => {
+  it('previews clamped stat, relationship, and item effects exactly', () => {
     const state = createNewGame(PROFILE, 20260826);
     state.currentEventId = 'boots-drying';
     state.stats.health = 99;
@@ -99,7 +99,6 @@ describe('time and attributes', () => {
       { key: 'fatigue', delta: 2 },
     ]);
     expect(preview.addedItems).toEqual(['dry_socks']);
-    expect(preview.advance).toEqual({ min: 7, max: 14, unit: 'days' });
 
     state.currentEventId = 'ration-tea';
     const social = availableChoices(state)[1];
@@ -294,23 +293,101 @@ describe('requirements and reproducibility', () => {
     expect(first).toEqual(second);
   });
 
-  it('carries an NPC choice into a delayed, branching personal story', () => {
-    let state = createNewGame(PROFILE, 20260811);
-    state.currentEventId = 'edward-first-shot';
-    state = resolveChoice(state, 'c');
+  it('carries Edward choices into three distinct middles and endings', () => {
+    const routes = [
+      { first: 'a', birthday: 'a', middle: 'edward-before-patrol', ending: 'edward-after-patrol' },
+      { first: 'c', birthday: 'b', middle: 'edward-apology-patrol', ending: 'edward-reconciled' },
+      { first: 'a', birthday: 'd', middle: 'edward-silent-patrol', ending: 'edward-medical-transfer' },
+    ];
 
-    expect(state.storyArcs.edward).toBe(1);
-    expect(state.flags).toContain('edward_shamed');
-    const birthday = state.scheduledEvents.find((event) => event.eventId === 'edward-age')!;
-    state.turn = birthday.dueTurn;
-    expect(selectNextEvent(state, new RandomCursor(state.rngState)).id).toBe('edward-age');
+    for (const route of routes) {
+      let state = createNewGame(PROFILE, 20260811);
+      state.currentEventId = 'edward-first-shot';
+      state = resolveChoice(state, route.first);
+      expect(state.storyArcs.edward).toBe(1);
+      expect(state.scheduledEvents.some((item) => item.eventId === 'edward-age')).toBe(true);
 
-    state.currentEventId = 'edward-age';
-    state = resolveChoice(state, 'a');
-    const patrol = state.scheduledEvents.find((event) => event.eventId === 'edward-before-patrol')!;
-    state.turn = patrol.dueTurn;
-    state.currentEventId = 'edward-before-patrol';
-    expect(availableChoices(state).map((choice) => choice.id)).toEqual(['b', 'c', 'd']);
+      state.currentEventId = 'edward-age';
+      state = resolveChoice(state, route.birthday);
+      expect(state.scheduledEvents.some((item) => item.eventId === route.middle)).toBe(true);
+
+      state.currentEventId = route.middle;
+      state = resolveChoice(state, 'a');
+      expect(state.scheduledEvents.some((item) => item.eventId === route.ending)).toBe(true);
+
+      state.currentEventId = route.ending;
+      state = resolveChoice(state, 'a');
+      expect(state.storyArcs.edward).toBe(4);
+      if (route.ending === 'edward-medical-transfer') {
+        expect(state.npcs.find((npc) => npc.id === 'edward')?.status).toBe('transferred');
+      }
+    }
+  });
+
+  it('carries George choices into three distinct middles and endings', () => {
+    const routes = [
+      { letter: 'a', middle: 'george-mother-reply', ending: 'george-second-crack' },
+      { letter: 'b', middle: 'george-timber-lesson', ending: 'george-engineer-sergeant' },
+      { letter: 'c', middle: 'george-silent-letter', ending: 'george-transfer-request' },
+    ];
+
+    for (const route of routes) {
+      let state = createNewGame(PROFILE, 20260812);
+      state.currentEventId = 'george-mining';
+      state = resolveChoice(state, 'a');
+      state.currentEventId = 'george-letter';
+      state = resolveChoice(state, route.letter);
+      expect(state.scheduledEvents.some((item) => item.eventId === route.middle)).toBe(true);
+
+      state.currentEventId = route.middle;
+      state = resolveChoice(state, 'a');
+      expect(state.scheduledEvents.some((item) => item.eventId === route.ending)).toBe(true);
+
+      state.currentEventId = route.ending;
+      state = resolveChoice(state, 'a');
+      expect(state.storyArcs.george).toBe(4);
+      if (route.ending === 'george-transfer-request') {
+        expect(state.npcs.find((npc) => npc.id === 'george')?.status).toBe('transferred');
+      }
+    }
+  });
+
+  it('replaces interrupted Edward and George branches with status-specific closures', () => {
+    const interruptions = [
+      { npcId: 'edward', opening: 'edward-first-shot', status: 'wounded' as const },
+      { npcId: 'edward', opening: 'edward-first-shot', status: 'dead' as const },
+      { npcId: 'edward', opening: 'edward-first-shot', status: 'transferred' as const },
+      { npcId: 'edward', opening: 'edward-first-shot', status: 'captured' as const },
+      { npcId: 'george', opening: 'george-mining', status: 'wounded' as const },
+      { npcId: 'george', opening: 'george-mining', status: 'dead' as const },
+      { npcId: 'george', opening: 'george-mining', status: 'transferred' as const },
+      { npcId: 'george', opening: 'george-mining', status: 'captured' as const },
+    ];
+
+    for (const interruption of interruptions) {
+      let state = createNewGame(PROFILE, 20260813);
+      state.currentEventId = interruption.opening;
+      state = resolveChoice(state, 'a');
+      state.npcs = state.npcs.map((npc) => npc.id === interruption.npcId
+        ? { ...npc, status: interruption.status, statusDate: state.currentDate }
+        : npc);
+      state.currentEventId = 'ration-tea';
+      state = resolveChoice(state, 'a');
+
+      const closureId = `${interruption.npcId}-story-${interruption.status}`;
+      const closure = state.scheduledEvents.find((item) => item.eventId === closureId);
+      expect(closure, closureId).toBeDefined();
+      expect(state.scheduledEvents.filter((item) => item.eventId.startsWith(`${interruption.npcId}-`)))
+        .toHaveLength(1);
+
+      state.pendingHistoryIds = [];
+      state.turn = closure!.dueTurn;
+      expect(selectNextEvent(state, new RandomCursor(state.rngState)).id).toBe(closureId);
+      state.currentEventId = closureId;
+      state = resolveChoice(state, 'a');
+      expect(state.storyArcs[interruption.npcId]).toBe(4);
+      expect(state.eventMemory[closureId]?.count).toBe(1);
+    }
   });
 
   it('turns a historical milestone into a scheduled chapter scene', () => {

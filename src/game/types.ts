@@ -53,6 +53,7 @@ export interface EventRequirements {
   flagsNone?: string[];
   itemsAll?: string[];
   npcActive?: string;
+  npcStatuses?: Record<string, NpcStatus | NpcStatus[]>;
   historyTriggered?: string;
   minRelationships?: Record<string, number>;
   maxRelationships?: Record<string, number>;
@@ -74,6 +75,7 @@ export interface ChoiceEffects {
   removeFlags?: string[];
   receiveLetter?: string;
   setArcStages?: Record<string, number>;
+  setNpcStatuses?: Record<string, NpcStatus>;
   scheduleEvents?: Array<{
     eventId: string;
     afterTurns: number;
@@ -128,6 +130,8 @@ export interface GameEvent {
   arcId?: string;
   arcStage?: number;
   scheduledOnly?: boolean;
+  recap?: string;
+  nextHint?: string;
 }
 
 export interface HistoricalRecord {

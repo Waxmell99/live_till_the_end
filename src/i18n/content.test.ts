@@ -43,6 +43,14 @@ describe('Chinese content pack', () => {
     expect(source.title).toBe('The road ends at the trenches');
   });
 
+  it('localizes personal-story recaps and next-step hints', () => {
+    const source = ALL_EVENTS.find((event) => event.id === 'edward-age')!;
+    const localized = localizeEvent(source, 'zh');
+    expect(localized.recap).toContain('第一发近弹');
+    expect(localized.nextHint).toContain('第一次巡逻');
+    expect(source.recap).toContain('close shell');
+  });
+
   it('covers every letter, comrade, historical record, and risk cause', () => {
     for (const letter of LETTERS) {
       const localized = localizeLetter(letter, 'zh');

@@ -52,6 +52,8 @@ export function makeEvent(seed: {
   arcId?: string;
   arcStage?: number;
   scheduledOnly?: boolean;
+  recap?: string;
+  nextHint?: string;
 }): GameEvent {
   const kind = seed.kind ?? 'routine';
   const advance = seed.advance ?? { min: 4, max: 9, unit: 'days' };
@@ -71,6 +73,8 @@ export function makeEvent(seed: {
     arcId: seed.arcId,
     arcStage: seed.arcStage,
     scheduledOnly: seed.scheduledOnly,
+    recap: seed.recap,
+    nextHint: seed.nextHint,
   };
 }
 
