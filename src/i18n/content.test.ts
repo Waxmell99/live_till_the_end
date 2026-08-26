@@ -6,6 +6,7 @@ import { NPC_DEFINITIONS } from '../data/npcs';
 import { createNewGame, resolveChoice } from '../game/engine';
 import {
   localizeEndingCause,
+  localizeDynamicText,
   localizeEvent,
   localizeHistory,
   localizeJournalEntry,
@@ -82,5 +83,14 @@ describe('Chinese content pack', () => {
     expect(localizedLegacy.body).toContain('五个人在冒烟的火盆旁');
     const legacyInitial = { ...state.journal[0], eventId: undefined };
     expect(localizeJournalEntry(legacyInitial, state, 'zh').title).toBe('派往西线');
+  });
+
+  it('localizes the layered wound and treatment explanation', () => {
+    const source = 'You suffer a critical wound (37 health lost). Your field dressing slows the bleeding before evacuation. At the aid post, your chance of dying from the wound is 18.5%. Treatment stabilises the wound.';
+    const localized = localizeDynamicText(source, 'zh');
+    expect(localized).toContain('重伤');
+    expect(localized).toContain('急救包扎带');
+    expect(localized).toContain('18.5%');
+    expect(localized).toContain('伤势稳定');
   });
 });

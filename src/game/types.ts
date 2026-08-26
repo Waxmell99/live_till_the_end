@@ -185,7 +185,9 @@ export type RiskFactorKey =
   | 'boldPosture'
   | 'restPosture'
   | 'badWeather'
-  | 'protectiveEquipment';
+  | 'protectiveEquipment'
+  | 'fieldDressing'
+  | 'alfieAid';
 
 export interface RiskFactor {
   key: RiskFactorKey;
@@ -234,8 +236,6 @@ export interface GameState {
   currentDate: string;
   character: CharacterProfile;
   stats: Stats;
-  /** Kept out of the visible UI. */
-  luck: number;
   location: string;
   weather: string;
   currentEventId: string;

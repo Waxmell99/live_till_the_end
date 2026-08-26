@@ -38,12 +38,21 @@ function riskFactorKey(factor: RiskFactor): TranslationKey {
   return `risk.factor.${factor.key}` as TranslationKey;
 }
 
-function riskLines(risk: ChoiceRiskAssessment, t: (key: TranslationKey, variables?: Record<string, string | number>) => string) {
+function riskLines(
+  risk: ChoiceRiskAssessment,
+  comradeName: string | undefined,
+  t: (key: TranslationKey, variables?: Record<string, string | number>) => string,
+) {
   return [
     { key: 'injury', range: risk.injury, text: t('event.injuryChance', { chance: chanceRange(risk.injury) }) },
-    { key: 'fatality', range: risk.fatality, text: t('event.deathChance', { chance: chanceRange(risk.fatality) }) },
+    { key: 'critical', range: risk.criticalInjury, text: t('event.criticalInjuryChance', { chance: chanceRange(risk.criticalInjury) }) },
+    { key: 'immediate-fatality', range: risk.immediateFatality, text: t('event.immediateDeathChance', { chance: chanceRange(risk.immediateFatality) }) },
+    { key: 'wound-fatality', range: risk.woundFatality, text: t('event.woundDeathChance', { chance: chanceRange(risk.woundFatality) }) },
+    { key: 'invalided', range: risk.invalided, text: t('event.invalidedChance', { chance: chanceRange(risk.invalided) }) },
     { key: 'capture', range: risk.capture, text: t('event.captureChance', { chance: chanceRange(risk.capture) }) },
-    ...(risk.comradeIncident ? [{ key: 'comrade', range: risk.comradeIncident, text: t('event.comradeChance', { chance: chanceRange(risk.comradeIncident) }) }] : []),
+    ...(risk.comradeIncident && comradeName
+      ? [{ key: 'comrade', range: risk.comradeIncident, text: t('event.comradeChance', { name: comradeName, chance: chanceRange(risk.comradeIncident) }) }]
+      : []),
   ].filter((line) => line.range.max > 0);
 }
 
@@ -98,6 +107,9 @@ export function EventPanel({ state, resolving, onChoose }: EventPanelProps) {
           <div className="choice-list">
             {choices.map(({ choice, preview }, index) => {
               const exposure = exposureKey(preview.risk?.exposure.max);
+              const comradeName = preview.risk?.comradeId
+                ? localizeNpc(getNpc(preview.risk.comradeId), language).name.split(/\s+/)[0]
+                : undefined;
               const hasImmediate = preview.stats.length > 0
                 || preview.relationships.length > 0
                 || preview.addedItems.length > 0
@@ -144,10 +156,10 @@ export function EventPanel({ state, resolving, onChoose }: EventPanelProps) {
                           <div className="risk-heading">
                             {exposure && <em>{t(exposure)} · {chanceRange(preview.risk.exposure)}</em>}
                             <span>{t('event.atRiskYou')}</span>
-                            {preview.risk.comradeIncident && <span>{t('event.atRiskComrade')}</span>}
+                            {preview.risk.comradeIncident && comradeName && <span>{t('event.atRiskComrade', { name: comradeName })}</span>}
                           </div>
                           <div className="consequence-chips risk-outcomes">
-                            {riskLines(preview.risk, t).map((line) => <span key={line.key}>{line.text}</span>)}
+                            {riskLines(preview.risk, comradeName, t).map((line) => <span key={line.key}>{line.text}</span>)}
                           </div>
                           {preview.risk.factors.length > 0 && (
                             <div className="risk-reasons">
@@ -155,6 +167,16 @@ export function EventPanel({ state, resolving, onChoose }: EventPanelProps) {
                               {preview.risk.factors.map((factor) => (
                                 <span key={`${factor.key}-${factor.direction}`} className={factor.direction}>
                                   {t(riskFactorKey(factor))} {factor.direction === 'raises' ? '↑' : '↓'}{factor.percent}%
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {preview.risk.treatmentFactors.length > 0 && (
+                            <div className="risk-reasons treatment-reasons">
+                              <b>{t('event.treatmentReasons')}</b>
+                              {preview.risk.treatmentFactors.map((factor) => (
+                                <span key={factor.key} className="lowers">
+                                  {t(riskFactorKey(factor))} ↓{factor.percent}%
                                 </span>
                               ))}
                             </div>

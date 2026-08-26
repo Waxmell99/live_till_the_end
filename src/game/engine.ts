@@ -59,7 +59,6 @@ function initialHistory(): HistoricalRecord[] {
 export function createNewGame(input: CharacterInput, rawSeed: number): GameState {
   const seed = normalizeSeed(rawSeed);
   const rng = new RandomCursor(seed);
-  const luck = rng.int(28, 72);
   const priorHistory = initialHistory();
   const character = makeCharacter(input);
   const journal: JournalEntry[] = [
@@ -83,7 +82,6 @@ export function createNewGame(input: CharacterInput, rawSeed: number): GameState
     currentDate: START_DATE,
     character,
     stats: { ...INITIAL_STATS },
-    luck,
     location: 'Arras rear area',
     weather: rng.pick(WEATHER),
     currentEventId: 'arrival-at-front',
@@ -335,10 +333,15 @@ interface ChanceRange {
 export interface ChoiceRiskAssessment {
   exposure: ChanceRange;
   injury: ChanceRange;
-  fatality: ChanceRange;
+  criticalInjury: ChanceRange;
+  immediateFatality: ChanceRange;
+  woundFatality: ChanceRange;
+  invalided: ChanceRange;
   capture: ChanceRange;
   comradeIncident?: ChanceRange;
+  comradeId?: string;
   factors: RiskFactor[];
+  treatmentFactors: RiskFactor[];
 }
 
 export interface ChoiceConsequencePreview {
@@ -354,10 +357,24 @@ export interface ChoiceConsequencePreview {
 interface CalculatedRisk {
   exposure: number;
   injury: number;
-  fatality: number;
+  criticalInjury: number;
+  immediateFatality: number;
+  woundFatality: number;
+  invalided: number;
   capture: number;
   comradeIncident?: number;
+  comradeId?: string;
   factors: RiskFactor[];
+  treatmentFactors: RiskFactor[];
+}
+
+type InjurySeverity = 'minor' | 'serious' | 'critical' | 'catastrophic';
+
+interface InjuryShares {
+  minor: number;
+  serious: number;
+  critical: number;
+  catastrophic: number;
 }
 
 function riskModifier(state: GameState, choice: EventChoice): { value: number; factors: RiskFactor[] } {
@@ -376,8 +393,6 @@ function riskModifier(state: GameState, choice: EventChoice): { value: number; f
   if (state.stats.fatigue > 70) add('highFatigue', 0.2);
   if (state.stats.stress > 72) add('highStress', 0.16);
   if (state.stats.morale < 25) add('lowMorale', 0.08);
-  const chance = (50 - state.luck) / 220;
-  if (Math.abs(chance) >= 0.005) add('battlefieldChance', chance);
   if (choice.posture === 'careful') multiply('carefulPosture', 0.8);
   if (choice.posture === 'bold') multiply('boldPosture', 1.16);
   if (choice.posture === 'rest') multiply('restPosture', 0.9);
@@ -386,21 +401,138 @@ function riskModifier(state: GameState, choice: EventChoice): { value: number; f
   return { value: Math.max(0.35, modifier), factors };
 }
 
+function injuryShares(choice: EventChoice): InjuryShares {
+  const risk = choice.risk!;
+  const lethality = Math.max(0.05, Math.min(0.65, risk.fatality ?? 0.2));
+  // Low-risk scenes can still cause serious harm, but never an unmediated instant death.
+  const catastrophic = risk.danger >= 0.12 ? lethality * 0.5 : 0;
+  const critical = lethality * (risk.danger < 0.06 ? 0.35 : risk.danger < 0.12 ? 0.7 : 0.9);
+  const serious = Math.min(0.5, 0.18 + lethality * 0.45);
+  const minor = Math.max(0, 1 - catastrophic - critical - serious);
+  const total = minor + serious + critical + catastrophic;
+  return {
+    minor: minor / total,
+    serious: serious / total,
+    critical: critical / total,
+    catastrophic: catastrophic / total,
+  };
+}
+
+function injuryLoss(state: GameState, severity: Exclude<InjurySeverity, 'catastrophic'>, baseLoss: number): number {
+  const multiplier = severity === 'minor' ? 0.55 : severity === 'critical' ? 1.35 : 1;
+  let loss = Math.max(1, Math.round(baseLoss * multiplier));
+  if (state.inventory.includes('field_dressing')) loss = Math.max(1, Math.round(loss * 0.78));
+  return loss;
+}
+
+function treatmentSupport(state: GameState): { reduction: number; factors: RiskFactor[] } {
+  let reduction = 0;
+  const factors: RiskFactor[] = [];
+  if (state.inventory.includes('field_dressing')) {
+    reduction += 0.1;
+    factors.push({ key: 'fieldDressing', direction: 'lowers', percent: 10 });
+  }
+  const alfie = state.npcs.find((npc) => npc.id === 'alfie' && npc.status === 'active');
+  if (alfie) {
+    const aid = alfie.relationship >= 60 ? 0.07 : 0.04;
+    reduction += aid;
+    factors.push({ key: 'alfieAid', direction: 'lowers', percent: Math.round(aid * 100) });
+  }
+  return { reduction, factors };
+}
+
+function treatmentDeathChance(state: GameState, severity: Exclude<InjurySeverity, 'catastrophic'>): number {
+  if (severity !== 'critical') return 0;
+  let chance = 0.18;
+  chance += Math.max(0, 40 - state.stats.health) / 75;
+  chance += Math.max(0, state.stats.fatigue - 70) / 250;
+  chance += Math.max(0, state.stats.hunger - 70) / 320;
+  chance -= treatmentSupport(state).reduction;
+  return Math.max(0.03, Math.min(0.78, chance));
+}
+
+function invalidedChance(state: GameState, severity: Exclude<InjurySeverity, 'catastrophic'>): number {
+  if (severity === 'critical') return Math.min(0.45, 0.12 + Math.max(0, 40 - state.stats.health) / 180);
+  if (severity === 'serious') {
+    if (state.stats.health <= 25) return 0.15;
+    if (state.stats.health <= 40) return 0.06;
+  }
+  if (severity === 'minor' && state.stats.health <= 18) return 0.05;
+  return 0;
+}
+
+function averageMedicalOutcomes(
+  state: GameState,
+  choice: EventChoice,
+  severity: Exclude<InjurySeverity, 'catastrophic'>,
+): { death: number; invalided: number } {
+  const [minimum, maximum] = choice.risk?.healthLoss ?? [10, 28];
+  let death = 0;
+  let invalided = 0;
+  const count = maximum - minimum + 1;
+  for (let baseLoss = minimum; baseLoss <= maximum; baseLoss += 1) {
+    const candidate: GameState = {
+      ...state,
+      stats: {
+        ...state.stats,
+        health: clamp(state.stats.health - injuryLoss(state, severity, baseLoss)),
+      },
+    };
+    const deathChance = candidate.stats.health <= 0 ? 1 : treatmentDeathChance(candidate, severity);
+    death += deathChance;
+    if (candidate.stats.health > 0) invalided += (1 - deathChance) * invalidedChance(candidate, severity);
+  }
+  return { death: death / count, invalided: invalided / count };
+}
+
+function calculateExposure(state: GameState, choice: EventChoice): { exposure: number; factors: RiskFactor[] } | undefined {
+  if (!choice.risk) return undefined;
+  const modifier = riskModifier(state, choice);
+  return {
+    exposure: Math.min(0.65, choice.risk.danger * modifier.value),
+    factors: modifier.factors,
+  };
+}
+
 function calculateRisk(state: GameState, choice: EventChoice): CalculatedRisk | undefined {
   const risk = choice.risk;
   if (!risk) return undefined;
   const modifier = riskModifier(state, choice);
   const exposure = Math.min(0.65, risk.danger * modifier.value);
   const captureShare = Math.max(0, Math.min(1, risk.capture ?? 0));
-  const fatalityShare = Math.max(0, Math.min(1 - captureShare, risk.fatality ?? 0.2));
+  const shares = injuryShares(choice);
+  const exposedAndFree = exposure * (1 - captureShare);
   const capture = exposure * captureShare;
-  const fatality = exposure * fatalityShare;
-  const injury = exposure * Math.max(0, 1 - captureShare - fatalityShare);
-  const canReachComradeRoll = 1 - capture - fatality;
-  const comradeIncident = risk.npcDanger && state.npcs.some((npc) => npc.status === 'active')
+  const immediateFatality = exposedAndFree * shares.catastrophic;
+  const medical = (['minor', 'serious', 'critical'] as const).map((severity) => ({
+    severity,
+    share: shares[severity],
+    ...averageMedicalOutcomes(state, choice, severity),
+  }));
+  const woundFatality = exposedAndFree * medical.reduce((sum, outcome) => sum + outcome.share * outcome.death, 0);
+  const invalided = exposedAndFree * medical.reduce((sum, outcome) => sum + outcome.share * outcome.invalided, 0);
+  const injury = exposedAndFree * (1 - shares.catastrophic);
+  const criticalInjury = exposedAndFree * shares.critical;
+  const canReachComradeRoll = 1 - capture - immediateFatality - woundFatality - invalided;
+  const target = choice.npcId
+    ? state.npcs.find((npc) => npc.id === choice.npcId && npc.status === 'active')
+    : undefined;
+  const comradeIncident = risk.npcDanger && target
     ? Math.min(0.22, risk.npcDanger * modifier.value) * canReachComradeRoll
     : undefined;
-  return { exposure, injury, fatality, capture, comradeIncident, factors: modifier.factors };
+  return {
+    exposure,
+    injury,
+    criticalInjury,
+    immediateFatality,
+    woundFatality,
+    invalided,
+    capture,
+    comradeIncident,
+    comradeId: comradeIncident ? target?.id : undefined,
+    factors: modifier.factors,
+    treatmentFactors: treatmentSupport(state).factors,
+  };
 }
 
 function range(first: number, second: number): ChanceRange {
@@ -448,22 +580,27 @@ export function getChoiceConsequencePreview(
     risk = {
       exposure: range(minimum.exposure, maximum.exposure),
       injury: range(minimum.injury, maximum.injury),
-      fatality: range(minimum.fatality, maximum.fatality),
+      criticalInjury: range(minimum.criticalInjury, maximum.criticalInjury),
+      immediateFatality: range(minimum.immediateFatality, maximum.immediateFatality),
+      woundFatality: range(minimum.woundFatality, maximum.woundFatality),
+      invalided: range(minimum.invalided, maximum.invalided),
       capture: range(minimum.capture, maximum.capture),
       comradeIncident: minimum.comradeIncident !== undefined && maximum.comradeIncident !== undefined
         ? range(minimum.comradeIncident, maximum.comradeIncident)
         : undefined,
+      comradeId: minimum.comradeId ?? maximum.comradeId,
       factors: [...factorMap.values()],
+      treatmentFactors: [...new Map([...minimum.treatmentFactors, ...maximum.treatmentFactors]
+        .map((factor) => [`${factor.key}:${factor.direction}`, factor])).values()],
     };
   }
 
   return { stats, relationships, addedItems, removedItems, advance: choice.advance, affectsStory, risk };
 }
 
-function npcIncident(state: GameState, rng: RandomCursor, directChance: number, messages: string[]): void {
-  const active = state.npcs.filter((npc) => npc.status === 'active');
-  if (active.length === 0 || rng.next() >= directChance) return;
-  const selected = rng.pick(active);
+function npcIncident(state: GameState, rng: RandomCursor, npcId: string | undefined, directChance: number, messages: string[]): void {
+  const selected = state.npcs.find((npc) => npc.id === npcId && npc.status === 'active');
+  if (!selected || rng.next() >= directChance) return;
   const definition = getNpc(selected.id);
   const outcome = rng.next();
   let status: NpcState['status'] = 'wounded';
@@ -563,39 +700,73 @@ function endGame(state: GameState, type: Ending['type'], cause: string, finalEve
 function resolveRisk(state: GameState, choice: EventChoice, rng: RandomCursor, messages: string[]): void {
   const risk = choice.risk;
   if (!risk) return;
-  const danger = calculateRisk(state, choice)!.exposure;
-  if (rng.next() < danger) {
-    const outcome = rng.next();
-    const capture = risk.capture ?? 0;
-    const fatality = risk.fatality ?? 0.2;
-    if (outcome < capture) {
+  const exposure = calculateExposure(state, choice)!.exposure;
+  if (rng.next() < exposure) {
+    const capture = Math.max(0, Math.min(1, risk.capture ?? 0));
+    if (rng.next() < capture) {
       messages.push('Cut off from the section, you are taken prisoner.');
       endGame(state, 'pow', `Captured during ${risk.cause}.`, choice.outcome, rng);
       return;
     }
-    if (outcome < capture + fatality) {
+
+    const shares = injuryShares(choice);
+    const severityRoll = rng.next();
+    const severity: InjurySeverity = severityRoll < shares.catastrophic
+      ? 'catastrophic'
+      : severityRoll < shares.catastrophic + shares.critical
+        ? 'critical'
+        : severityRoll < shares.catastrophic + shares.critical + shares.serious
+          ? 'serious'
+          : 'minor';
+
+    if (severity === 'catastrophic') {
       state.stats.health = 0;
-      messages.push('The section returns without you.');
+      messages.push('The hit is catastrophic. The section returns without you.');
       endGame(state, 'killed', `Killed by ${risk.cause}.`, choice.outcome, rng);
       return;
     }
+
     const [minimum, maximum] = risk.healthLoss ?? [10, 28];
-    let loss = rng.int(minimum, maximum);
-    if (state.inventory.includes('field_dressing')) loss = Math.round(loss * 0.78);
+    const baseLoss = rng.int(minimum, maximum);
+    const loss = injuryLoss(state, severity, baseLoss);
     state.stats.health = clamp(state.stats.health - loss);
-    state.stats = applyStatEffects(state.stats, { stress: 7, morale: -4 });
-    messages.push(`You are wounded (${loss} health lost), but remain alive.`);
+    const shock = severity === 'critical' ? { stress: 13, morale: -8 }
+      : severity === 'serious' ? { stress: 9, morale: -5 }
+        : { stress: 5, morale: -2 };
+    state.stats = applyStatEffects(state.stats, shock);
+    messages.push(`You suffer a ${severity} wound (${loss} health lost).`);
+    if (state.inventory.includes('field_dressing')) messages.push('Your field dressing slows the bleeding before evacuation.');
     if (state.stats.health <= 0) {
+      messages.push('The wound proves fatal before treatment can stabilise you.');
       endGame(state, 'wounds', `Died of wounds after ${risk.cause}.`, choice.outcome, rng);
       return;
     }
-    if (state.stats.health <= 18 && rng.next() < 0.46) {
+
+    const treatmentRisk = treatmentDeathChance(state, severity);
+    if (treatmentRisk > 0) {
+      messages.push(`At the aid post, your chance of dying from the wound is ${Math.round(treatmentRisk * 1000) / 10}%.`);
+      if (rng.next() < treatmentRisk) {
+        messages.push('The aid post cannot stabilise the wound.');
+        endGame(state, 'wounds', `Died of wounds after ${risk.cause}.`, choice.outcome, rng);
+        return;
+      }
+      messages.push('Treatment stabilises the wound.');
+    }
+
+    const medicalBoardRisk = invalidedChance(state, severity);
+    if (medicalBoardRisk > 0 && rng.next() < medicalBoardRisk) {
       messages.push('The medical board rules that you cannot return to front-line service.');
       endGame(state, 'invalided', `Invalided home after wounds sustained during ${risk.cause}.`, choice.outcome, rng);
       return;
     }
   }
-  npcIncident(state, rng, Math.min(0.22, (risk.npcDanger ?? 0) * riskModifier(state, choice).value), messages);
+  npcIncident(
+    state,
+    rng,
+    choice.npcId,
+    Math.min(0.22, (risk.npcDanger ?? 0) * riskModifier(state, choice).value),
+    messages,
+  );
 }
 
 export function triggerHistory(state: GameState, from: string, to: string): HistoricalRecord[] {
@@ -753,7 +924,7 @@ export function resolveChoice(input: GameState, choiceId: string): GameState {
     ? '1918-11-11T10:58:00.000Z'
     : advanceGameTime(state.currentDate, choice.advance, rng);
   applyTimePressure(state, previousDate, state.currentDate, event);
-  const resolvedRisk = calculateRisk(state, choice);
+  const resolvedRisk = calculateExposure(state, choice);
   resolveRisk(state, choice, rng, messages);
   if (isFinalHourEvent && state.status === 'playing') state.currentDate = ARMISTICE_DATE;
   if (state.status === 'playing') maybeRecoverNpc(state, rng, messages);

@@ -48,6 +48,14 @@ describe('content requirements', () => {
       expect(event.choices.length, event.id).toBeGreaterThanOrEqual(2);
     }
   });
+
+  it('binds every NPC casualty risk to a named participant', () => {
+    for (const event of [...ROUTINE_EVENTS, ...COMBAT_EVENTS, ...RELATIONSHIP_EVENTS, ...CHAPTER_EVENTS]) {
+      for (const choice of event.choices) {
+        if (choice.risk?.npcDanger) expect(choice.npcId, `${event.id}:${choice.id}`).toBeTruthy();
+      }
+    }
+  });
 });
 
 describe('time and attributes', () => {
@@ -124,14 +132,15 @@ describe('death, NPCs, and endings', () => {
     const state = createNewGame(PROFILE, 20260826);
     state.currentEventId = 'bombardment-dugout';
     state.stats.fatigue = 69;
-    state.luck = 50;
     state.weather = 'A pale, dry morning';
     const event = getCurrentEvent(state);
     const choice = availableChoices(state, event)[0];
     const preview = getChoiceConsequencePreview(state, choice, event);
 
     expect(preview.risk?.exposure).toEqual({ min: 0.108, max: 0.108 });
-    expect(preview.risk?.fatality.min).toBeCloseTo(0.0378);
+    expect(preview.risk?.immediateFatality).toEqual({ min: 0, max: 0 });
+    expect(preview.risk!.criticalInjury.min).toBeGreaterThan(0);
+    expect(preview.risk!.woundFatality.min).toBeGreaterThan(0);
     expect(preview.risk?.factors).toContainEqual({ key: 'highFatigue', direction: 'raises', percent: 20 });
 
     const resolved = resolveChoice(state, choice.id);
@@ -143,7 +152,6 @@ describe('death, NPCs, and endings', () => {
   it('shows protective equipment in the same risk calculation used by gas resolution', () => {
     const state = createNewGame(PROFILE, 17);
     state.currentEventId = 'gas-cloud';
-    state.luck = 50;
     state.weather = 'Clear sky above the guns';
     const event = getCurrentEvent(state);
     const choice = availableChoices(state, event)[0];
@@ -151,6 +159,47 @@ describe('death, NPCs, and endings', () => {
 
     expect(preview.risk?.factors).toContainEqual({ key: 'protectiveEquipment', direction: 'lowers', percent: 62 });
     expect(preview.risk!.exposure.max).toBeLessThan(choice.risk!.danger);
+  });
+
+  it('shows field dressing and Alfie support in projected treatment outcomes', () => {
+    const unsupported = createNewGame(PROFILE, 71);
+    unsupported.currentEventId = 'bombardment-dugout';
+    unsupported.weather = 'A pale, dry morning';
+    unsupported.npcs = unsupported.npcs.map((npc) => npc.id === 'alfie' ? { ...npc, status: 'transferred' as const } : npc);
+    const supported = structuredClone(unsupported);
+    supported.inventory.push('field_dressing');
+    supported.npcs = supported.npcs.map((npc) => npc.id === 'alfie'
+      ? { ...npc, status: 'active' as const, relationship: 70 }
+      : npc);
+    const unsupportedRisk = getChoiceConsequencePreview(unsupported, availableChoices(unsupported)[0]).risk!;
+    const supportedRisk = getChoiceConsequencePreview(supported, availableChoices(supported)[0]).risk!;
+
+    expect(supportedRisk.treatmentFactors).toEqual([
+      { key: 'fieldDressing', direction: 'lowers', percent: 10 },
+      { key: 'alfieAid', direction: 'lowers', percent: 7 },
+    ]);
+    expect(supportedRisk.woundFatality.max).toBeLessThan(unsupportedRisk.woundFatality.max);
+  });
+
+  it('does not let hidden luck alter exposure or medical outcomes', () => {
+    const unlucky = { ...createNewGame(PROFILE, 33), luck: 28 };
+    unlucky.currentEventId = 'night-patrol';
+    unlucky.weather = 'A pale, dry morning';
+    const lucky = { ...structuredClone(unlucky), luck: 72 };
+    const unluckyChoice = availableChoices(unlucky)[1];
+    const luckyChoice = availableChoices(lucky)[1];
+
+    expect(getChoiceConsequencePreview(unlucky, unluckyChoice).risk)
+      .toEqual(getChoiceConsequencePreview(lucky, luckyChoice).risk);
+  });
+
+  it('prevents low-risk scenes from causing an immediate killed ending', () => {
+    for (let seed = 1; seed <= 1500; seed += 1) {
+      const state = createNewGame(PROFILE, seed);
+      state.currentEventId = 'george-mining';
+      const after = resolveChoice(state, 'c');
+      expect(after.ending?.type, `seed ${seed}`).not.toBe('killed');
+    }
   });
 
   it('ends a life whose health reaches zero', () => {
@@ -161,7 +210,7 @@ describe('death, NPCs, and endings', () => {
     expect(ended.ending?.type).toBe('wounds');
   });
 
-  it('allows an unprotected NPC to die in a reproducible combat result', () => {
+  it('applies a combat casualty roll only to the named NPC', () => {
     let firstFatalState: GameState | undefined;
     for (let seed = 1; seed < 2000; seed += 1) {
       const state = createNewGame(PROFILE, seed);
@@ -173,6 +222,8 @@ describe('death, NPCs, and endings', () => {
       }
     }
     expect(firstFatalState).toBeDefined();
+    expect(firstFatalState?.npcs.find((npc) => npc.id === 'george')?.status).toBe('dead');
+    expect(firstFatalState?.npcs.filter((npc) => npc.id !== 'george').every((npc) => npc.status === 'active')).toBe(true);
     expect(firstFatalState?.journal.some((entry) => entry.category === 'personnel')).toBe(true);
   });
 

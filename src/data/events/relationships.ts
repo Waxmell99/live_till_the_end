@@ -68,7 +68,7 @@ export const RELATIONSHIP_EVENTS: GameEvent[] = [
     text: 'Arthur says the assigned route was under direct observation yesterday. The new officer has not seen it.',
     choices: [
       statChoice('Support Arthur’s objection', 'Ask for the covered route as a section.', 'social', { stress: 3, morale: 4 }, 'The officer relents after inspecting the map.', { effects: continueStory('arthur', 2, 'arthur-route-aftermath', { arthur: 8 }, ['arthur_route_changed']) }),
-      statChoice('Follow the written route', 'Orders protect nobody from responsibility.', 'duty', { stress: 5, morale: -1 }, 'Arthur follows and says nothing more.', { effects: continueStory('arthur', 2, 'arthur-route-aftermath', { arthur: -5 }, ['arthur_route_ignored']), risk: { danger: 0.06, fatality: 0.22, npcDanger: 0.04, healthLoss: [10, 26], cause: 'shellfire on an observed route' } }),
+      statChoice('Follow the written route', 'Orders protect nobody from responsibility.', 'duty', { stress: 5, morale: -1 }, 'Arthur follows and says nothing more.', { effects: continueStory('arthur', 2, 'arthur-route-aftermath', { arthur: -5 }, ['arthur_route_ignored']), risk: { danger: 0.06, fatality: 0.22, npcDanger: 0.04, healthLoss: [10, 26], cause: 'shellfire on an observed route' }, npcId: 'arthur' }),
       statChoice('Suggest scouting it first', 'Test both judgments before the party moves.', 'careful', { fatigue: 5, stress: 2, morale: 3 }, 'The scout confirms the route is watched.', { effects: continueStory('arthur', 2, 'arthur-route-aftermath', { arthur: 5 }, ['arthur_route_scouted']) }),
     ], advance: shortAdvance, requirements: { npcActive: 'arthur', arcStages: { arthur: 1 } }, focusNpcId: 'arthur', tags: ['personal', 'duty'], arcId: 'arthur', arcStage: 1, scheduledOnly: true,
   }),
@@ -136,7 +136,7 @@ export const RELATIONSHIP_EVENTS: GameEvent[] = [
     choices: [
       statChoice('Follow his instructions', 'Move the sleeping men and brace the weak side.', 'social', { fatigue: 8, stress: 3, morale: 5 }, 'The roof settles against the new brace.', { effects: continueStory('george', 1, 'george-letter', { george: 9 }, ['george_skill_trusted']) }),
       statChoice('Fetch the engineer sergeant', 'Get formal authority before moving supports.', 'duty', { fatigue: 5, stress: 5, morale: 1 }, 'The sergeant arrives and gives George the same instructions.', { effects: continueStory('george', 1, 'george-letter', { george: 2 }, ['george_authority_first']) }),
-      statChoice('Say the timber always creaks', 'The dugout has survived worse.', 'rest', { fatigue: -2, stress: 1, morale: -2 }, 'George moves his own bedding nearer the entrance.', { effects: continueStory('george', 1, 'george-letter', { george: -7 }, ['george_warning_ignored']), risk: { danger: 0.05, fatality: 0.25, npcDanger: 0.06, healthLoss: [10, 30], cause: 'a dugout roof collapse' } }),
+      statChoice('Say the timber always creaks', 'The dugout has survived worse.', 'rest', { fatigue: -2, stress: 1, morale: -2 }, 'George moves his own bedding nearer the entrance.', { effects: continueStory('george', 1, 'george-letter', { george: -7 }, ['george_warning_ignored']), risk: { danger: 0.05, fatality: 0.25, npcDanger: 0.06, healthLoss: [10, 30], cause: 'a dugout roof collapse' }, npcId: 'george' }),
     ], advance: shortAdvance, requirements: { npcActive: 'george', arcStages: { george: 0 } }, focusNpcId: 'george', tags: ['personal', 'work'], arcId: 'george', arcStage: 0,
   }),
   makeEvent({

@@ -218,12 +218,23 @@ export function localizeDynamicText(text: string, language: Language): string {
   const exact: Record<string, string> = {
     'Cut off from the section, you are taken prisoner.': '你与班组失散，随后被俘。',
     'The section returns without you.': '班组回来时，你已经不在其中。',
+    'The hit is catastrophic. The section returns without you.': '这次命中造成了灾难性伤害。班组回来时，你已经不在其中。',
+    'Your field dressing slows the bleeding before evacuation.': '急救包扎带在后送前减缓了失血。',
+    'The wound proves fatal before treatment can stabilise you.': '伤势在救治能够稳定你之前便已致命。',
+    'The aid post cannot stabilise the wound.': '救护站未能稳定伤势。',
+    'Treatment stabilises the wound.': '救治使伤势稳定下来。',
     'The medical board rules that you cannot return to front-line service.': '医疗委员会裁定你不能再返回前线。',
     'The guns fell silent at eleven o’clock.': '十一点整，枪炮声沉寂了。',
   };
   if (exact[text]) return exact[text];
   let result = text;
+  for (const [source, translated] of Object.entries(exact)) result = result.replaceAll(source, translated);
   result = result.replace(/You are wounded \((\d+) health lost\), but remain alive\./g, '你负伤了（健康损失 $1），但仍然活着。');
+  result = result.replace(/You suffer a (minor|serious|critical) wound \((\d+) health lost\)\./g, (_match, severity: string, loss: string) => {
+    const labels: Record<string, string> = { minor: '轻伤', serious: '中等伤势', critical: '重伤' };
+    return `你遭受${labels[severity]}（健康损失 ${loss}）。`;
+  });
+  result = result.replace(/At the aid post, your chance of dying from the wound is ([\d.]+)%\./g, '抵达救护站时，这次伤势导致死亡的风险为 $1%。');
   result = result.replace(/([A-Za-z”“’\s]+) was killed\. His place in the section is empty\./g, '$1阵亡了。他在班里的位置空了下来。');
   result = result.replace(/([A-Za-z”“’\s]+) is missing after the action\./g, '战斗结束后，$1失踪了。');
   result = result.replace(/([A-Za-z”“’\s]+) is wounded and taken to the aid post\./g, '$1负伤，被送往救护站。');

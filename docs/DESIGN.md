@@ -6,21 +6,21 @@ The player is an ordinary British infantryman on the Western Front. History move
 
 ## Game loop
 
-Each turn presents one situated event. A choice applies deterministic effects, resolves contextual risk, advances time, updates historical context and relationships, writes a diary entry, and selects the next eligible event. Quiet routines advance days or weeks. Front-line danger advances hours. Ended lives average roughly 80 turns; a full armistice life averages roughly 120 because it crosses the complete historical timeline.
+Each turn presents one situated event. A choice applies deterministic effects, advances time, resolves contextual risk, updates historical context and relationships, writes a diary entry, and selects the next eligible event. Quiet routines advance days or weeks. Front-line danger advances hours. Ended lives average roughly 90 turns; a full armistice life averages roughly 120 because it crosses the complete historical timeline.
 
 ## Event system
 
-`GameEvent` data is separate from rendering. Events carry eligibility rules, contextual weights, choices, time ranges, effects, relationship changes, risks, occurrence limits, cooldowns, and optional story metadata. Risk is modified by health, fatigue, stress, weather, equipment, choice posture, and hidden luck.
+`GameEvent` data is separate from rendering. Events carry eligibility rules, contextual weights, choices, time ranges, effects, relationship changes, risks, occurrence limits, cooldowns, and optional story metadata. Every choice previews its exact immediate effects and its current risk range after health, fatigue, stress, morale, weather, equipment, posture, and elapsed-time pressure are applied.
 
 The selector resolves fixed history first, then due personal or chapter callbacks, then prefers unseen eligible content inside a category. Ordinary authored scenes appear once; combat scenes may recur only after a long cooldown. Exact occurrence history and the choice that caused it are stored in `GameState`, replacing the former seven-event-only suppression as the primary repetition control.
 
 ## Random system
 
-All consequential randomness passes through a serializable Mulberry32 state. A new seed derives character luck and the initial event stream. Saving stores the current PRNG state, so reloading cannot reroll a dangerous choice. The same seed and same choices reproduce the same key outcomes.
+All consequential randomness passes through a serializable Mulberry32 state. Saving stores the current PRNG state, so reloading cannot reroll a dangerous choice. The same seed and same choices reproduce the same key outcomes. There is no hidden luck attribute in the casualty formula.
 
 ## NPC system
 
-Five persistent fictional comrades have background, temperament, relationship value, status, and a four-stage personal arc. A choice advances the arc, records branch flags, and schedules the next scene after other events have passed. Later choices can require earlier trust, refusal, apology, or promises. Active comrades can still be wounded, killed, captured, or transferred; no NPC has plot armour, so war may interrupt a thread rather than waiting for its planned conclusion.
+Five persistent fictional comrades have background, temperament, relationship value, status, and a four-stage personal arc. A choice advances the arc, records branch flags, and schedules the next scene after other events have passed. Later choices can require earlier trust, refusal, apology, or promises. Active comrades can still be wounded, killed, captured, or transferred; every casualty roll names its exposed comrade in advance instead of selecting an unrelated active NPC after the choice.
 
 ## History system
 
@@ -36,7 +36,7 @@ The complete game supports English and Simplified Chinese. A typed UI dictionary
 
 ## Endings
 
-The engine supports killed in action, death from wounds or illness, invalided home, prisoner of war, and survival to the armistice. The armistice is clamped to exactly 11:00 and receives a quiet final sequence. Endings preserve the diary, relationships, campaign list, and final incident.
+The engine supports killed in action, death from wounds or illness, invalided home, prisoner of war, and survival to the armistice. Casualties resolve in layers: exposure, capture or injury severity, health loss, field treatment, and a medical-board result. Low-risk scenes can injure or ultimately kill through untreated wounds but cannot cause an unmediated killed-in-action result; catastrophic instant death is reserved for explicitly high-exposure actions. The armistice is clamped to exactly 11:00 and receives a quiet final sequence. Endings preserve the diary, relationships, campaign list, and final incident.
 
 ## AI boundary
 
