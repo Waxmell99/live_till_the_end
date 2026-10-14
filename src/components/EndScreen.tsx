@@ -6,6 +6,7 @@ import type { GameState } from '../game/types';
 import { useLanguage, type TranslationKey } from '../i18n';
 import { localizeEndingCause, localizeJournalEntry, localizeLocation, localizePostwarLine, localizeProfileValue } from '../i18n/content';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { FrontlinePanel } from './FrontlinePanel';
 
 interface EndScreenProps {
   state: GameState;
@@ -40,6 +41,7 @@ export function EndScreen({ state, onAnotherLife }: EndScreenProps) {
         <p className="life-years">{state.character.birthYear} — {recordEndYear}</p>
         {!lived && <p className="age-line">{t('ending.age', { age })}</p>}
         <div className="end-cause"><p>{localizeEndingCause(ending.cause, language)}</p><time>{formatDate(ending.date, true, language)} · {localizeLocation(state.location, language)}</time></div>
+        {state.frontline && <FrontlinePanel state={state} />}
         {ending.postwar && <div className="postwar-record">{ending.postwar.map((line) => <p key={line}>{localizePostwarLine(line, language)}</p>)}</div>}
         <div className="survival-mark">
           <span>{daysSurvived(state)}</span>

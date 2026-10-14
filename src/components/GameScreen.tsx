@@ -13,6 +13,7 @@ import { EventPanel } from './EventPanel';
 import { MapPanel } from './MapPanel';
 import { StatusPanel } from './StatusPanel';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { FrontlinePanel } from './FrontlinePanel';
 
 interface GameScreenProps {
   state: GameState;
@@ -71,6 +72,7 @@ export function GameScreen({ state, onStateChange, onAnotherLife }: GameScreenPr
         <StatusPanel state={state} />
         <EventPanel state={state} resolving={resolving} onChoose={choose} />
         <aside className="right-rail">
+          {state.frontline?.status === 'completed' && <FrontlinePanel state={state} />}
           <MapPanel state={state} />
           <ComradesPanel state={state} onOpenPersonnel={() => setDossier('personnel')} />
           <nav className="record-actions" aria-label={t('record.aria')}>

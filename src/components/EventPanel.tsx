@@ -4,6 +4,8 @@ import { renderNarrative } from '../game/presentation';
 import type { GameState, RiskFactor, StatKey } from '../game/types';
 import { useLanguage, type TranslationKey } from '../i18n';
 import { localizeChoice, localizeEvent, localizeJournalEntry, localizeNpc } from '../i18n/content';
+import { frontlineCopy } from '../i18n/frontline';
+import { FrontlineConsequences, FrontlinePanel } from './FrontlinePanel';
 
 interface EventPanelProps {
   state: GameState;
@@ -64,6 +66,8 @@ export function EventPanel({ state, resolving, onChoose }: EventPanelProps) {
     choice: localizeChoice(sourceEvent, sourceChoice, language),
     preview: getChoiceConsequencePreview(state, sourceChoice, sourceEvent),
   }));
+  const inMission = sourceEvent.tags?.includes('frontline');
+  const lockedChoices = inMission ? event.choices.filter((choice) => !choices.some((available) => available.choice.id === choice.id)) : [];
   const lastEntry = state.journal[state.journal.length - 1];
   const localizedLastEntry = lastEntry ? localizeJournalEntry(lastEntry, state, language) : undefined;
   const narrativeLabel = event.arcId
@@ -72,6 +76,7 @@ export function EventPanel({ state, resolving, onChoose }: EventPanelProps) {
 
   return (
     <section className={`event-panel event-${event.kind} ${resolving ? 'is-resolving' : ''}`} key={`${event.id}-${state.turn}`}>
+      {inMission && <FrontlinePanel state={state} />}
       {state.lastResolution.length > 0 && (
         <div className="previous-outcome" aria-live="polite">
           <span>{t('event.lastEntry')}</span>
@@ -127,6 +132,7 @@ export function EventPanel({ state, resolving, onChoose }: EventPanelProps) {
                     <b>{choice.label}</b>
                     <small>{choice.detail}</small>
                     <div className="consequence-preview">
+                      {preview.frontline && <FrontlineConsequences forecast={preview.frontline} />}
                       <div className="consequence-group guaranteed-effects">
                         <strong>{t('event.guaranteed')}</strong>
                         <div className="consequence-chips">
@@ -190,7 +196,13 @@ export function EventPanel({ state, resolving, onChoose }: EventPanelProps) {
               );
             })}
           </div>
-          <p className="choice-caution">{t('event.caution')}</p>
+          {lockedChoices.length > 0 && <div className="frontline-locked">
+            <p>{frontlineCopy(language).unmet}</p>
+            {lockedChoices.map((choice) => <button type="button" className="choice" key={choice.id} disabled>
+              <span className="choice-copy"><b>{choice.label}</b><small>{choice.detail}</small></span>
+            </button>)}
+          </div>}
+          <p className="choice-caution">{inMission ? frontlineCopy(language).caution : t('event.caution')}</p>
         </div>
       </article>
     </section>
