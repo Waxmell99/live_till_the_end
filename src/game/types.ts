@@ -216,6 +216,39 @@ export interface JournalEntry {
   npcId?: string;
   endingType?: EndingType;
   riskAssessment?: RiskAssessmentSnapshot;
+  frontlineNotices?: FrontlineNotice[];
+}
+
+export const FRONTLINE_STAGES = ['orders', 'route', 'kit', 'coordination', 'approach', 'rescue', 'treatment', 'withdrawal', 'aid', 'aftermath'] as const;
+export type FrontlineStage = typeof FRONTLINE_STAGES[number];
+export type FrontlineNotice = 'playerHit' | 'playerBleeding' | 'playerStable' | 'playerDied' | 'edwardHit' | 'edwardStable' | 'edwardDied' | 'edwardSaved' | 'edwardLeft' | 'georgeHit' | 'transportMissed' | 'promiseKept' | 'promiseBroken' | 'routeRemembered';
+
+export interface FrontlineWound {
+  deadline: string;
+  stabilized: boolean;
+}
+
+/** One authored mission; all deadlines use the saved game clock, never wall-clock timers. */
+export interface FrontlineMission {
+  stage: FrontlineStage;
+  status: 'active' | 'completed';
+  startedAt: string;
+  preparationDeadline: string;
+  preparationDelay: number;
+  evacuationDeadline?: string;
+  routeKnown: boolean;
+  rested: boolean;
+  dressings: number;
+  smoke: boolean;
+  support: 'none' | 'cover' | 'stretcher';
+  commitment: 'self' | 'edward';
+  playerWound?: FrontlineWound;
+  edwardWound?: FrontlineWound;
+  edwardReached: boolean;
+  edwardCarried: boolean;
+  edwardOutcome: 'pending' | 'saved' | 'dead';
+  georgeWounded: boolean;
+  transportMissed: boolean;
 }
 
 export type EndingType = 'killed' | 'wounds' | 'invalided' | 'pow' | 'survived';
@@ -258,6 +291,7 @@ export interface GameState {
   lastResolution: string[];
   ending?: Ending;
   updatedAt: string;
+  frontline?: FrontlineMission;
 }
 
 export interface CharacterInput {

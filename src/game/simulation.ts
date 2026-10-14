@@ -1,5 +1,6 @@
 import { ARMISTICE_DATE } from './constants';
-import { availableChoices, createNewGame, daysSurvived, getCurrentEvent, resolveChoice } from './engine';
+import { availableChoices, createNewGame, daysSurvived, getChoiceConsequencePreview, getCurrentEvent, resolveChoice } from './engine';
+import { minutesLeft } from './frontline';
 import type { CharacterInput, EventChoice, GameState, SimulationSummary } from './types';
 
 export type SimulationPolicy = 'balanced' | 'first' | 'second' | 'careful' | 'bold';
@@ -33,6 +34,22 @@ function choiceScore(state: GameState, choice: EventChoice): number {
   score += Object.values(choice.effects?.relationships ?? {}).reduce((sum, value) => sum + value, 0) * 0.14;
   score -= (choice.risk?.danger ?? 0) * 58;
   if (choice.posture === 'careful') score += 1.2;
+  if (state.frontline?.status === 'active') {
+    // Autoplay can read the same deterministic forecast as a player, including
+    // deadlines that the older immediate-stat-only policy did not understand.
+    const preview = getChoiceConsequencePreview(state, choice);
+    const forecast = preview.frontline!;
+    score += preview.stats.filter((stat) => stat.key === 'health').reduce((sum, stat) => sum + stat.delta * 2.2, 0);
+    if (forecast.notices.includes('playerDied')) score -= 10_000;
+    if (forecast.notices.includes('georgeHit')) score -= 24;
+    if (forecast.notices.some((notice) => ['edwardDied', 'edwardLeft'].includes(notice))) score -= state.frontline.commitment === 'edward' ? 100 : 8;
+    if (forecast.notices.includes('edwardStable')) score += 35;
+    if (forecast.notices.includes('playerStable')) score += 45;
+    if (!state.frontline.routeKnown && forecast.result.routeKnown) score += 8;
+    score += Math.max(0, forecast.dressingsDelta) * 2;
+    if (forecast.result.stage === 'treatment' && forecast.result.edwardWound && !forecast.result.edwardWound.stabilized
+      && minutesLeft(forecast.result.edwardWound.deadline, forecast.date) < 4) score -= 40;
+  }
   return score;
 }
 

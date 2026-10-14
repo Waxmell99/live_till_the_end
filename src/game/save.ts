@@ -1,5 +1,6 @@
 import { SAVE_KEY } from './constants';
 import type { GameState } from './types';
+import { isFrontlineEvent, validFrontlineMission } from './frontline';
 
 export interface StorageLike {
   getItem(key: string): string | null;
@@ -28,6 +29,9 @@ export function parseGame(raw: string): GameState | null {
     ) {
       return null;
     }
+    if (candidate.frontline !== undefined && !validFrontlineMission(candidate.frontline)) return null;
+    if (candidate.frontline?.status === 'active' && candidate.currentEventId !== `frontline-${candidate.frontline.stage}`) return null;
+    if (typeof candidate.currentEventId === 'string' && isFrontlineEvent(candidate.currentEventId) && candidate.frontline?.status !== 'active') return null;
     return {
       ...candidate,
       eventMemory: candidate.eventMemory && typeof candidate.eventMemory === 'object' ? candidate.eventMemory : {},

@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { SAVE_KEY } from './game/constants';
 import { LANGUAGE_KEY } from './i18n';
+import { createNewGame, resolveChoice } from './game/engine';
+import { parseGame, serializeGame } from './game/save';
 
 function buttonWithText(root: ParentNode, text: string): HTMLButtonElement {
   const button = [...root.querySelectorAll('button')].find((candidate) => candidate.textContent?.includes(text));
@@ -12,6 +14,49 @@ function buttonWithText(root: ParentNode, text: string): HTMLButtonElement {
 }
 
 describe('browser game flow', () => {
+  it('resumes an untreated mission wound in Chinese, previews cooperation and saves the complete rescue', async () => {
+    let state = resolveChoice(createNewGame({
+      name: 'Thomas Miller', age: 19, occupation: 'Clerk', hometown: 'Leeds', family: 'Parents', enlisted: '1916',
+    }, 42), 'b');
+    for (const id of ['promise', 'rest', 'smoke', 'stretcher', 'crawl', 'rush']) state = resolveChoice(state, id);
+    localStorage.setItem(SAVE_KEY, serializeGame(state));
+    localStorage.setItem(LANGUAGE_KEY, 'zh');
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    let root = createRoot(container);
+    await act(async () => root.render(<App />));
+    await act(async () => buttonWithText(container, '继续Thomas Miller').click());
+    expect(container.textContent).toContain('把手按在伤口上');
+    expect(container.textContent).toContain('你的止血期限');
+    expect(container.textContent).toContain('Edward 的止血期限');
+    expect(container.textContent).toContain('此选项完成后');
+    expect(container.textContent).toContain('你的出血在期限内得到控制');
+    const beforeSwitch = parseGame(localStorage.getItem(SAVE_KEY)!);
+    await act(async () => buttonWithText(container, 'EN').click());
+    expect(container.textContent).toContain('Hands on the wound');
+    expect(parseGame(localStorage.getItem(SAVE_KEY)!)).toEqual(beforeSwitch);
+    await act(async () => buttonWithText(container, '中文').click());
+    for (const label of ['包扎自己，让 George 照料 Edward', '和 George 一起抬担架', '直接找医护人员', '记下自己想保住的东西']) {
+      await act(async () => { buttonWithText(container, label).click(); await vi.advanceTimersByTimeAsync(300); });
+    }
+    const saved = parseGame(localStorage.getItem(SAVE_KEY)!);
+    expect(saved?.frontline?.status).toBe('completed');
+    expect(saved?.frontline?.edwardOutcome).toBe('saved');
+    expect(saved?.frontline?.playerWound?.stabilized).toBe(true);
+    expect(container.textContent).toContain('你兑现了承诺');
+    await act(async () => root.unmount());
+    container.innerHTML = '';
+    root = createRoot(container);
+    await act(async () => root.render(<App />));
+    await act(async () => buttonWithText(container, '继续Thomas Miller').click());
+    expect(container.textContent).toContain('Edward 活着后送，离队养伤');
+    expect(parseGame(localStorage.getItem(SAVE_KEY)!)).toEqual(saved);
+    await act(async () => root.unmount());
+    expect(errors).not.toHaveBeenCalled();
+    errors.mockRestore();
+  });
+
   beforeEach(() => {
     localStorage.clear();
     vi.useFakeTimers();

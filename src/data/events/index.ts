@@ -6,6 +6,7 @@ import { CHAPTER_EVENTS, HISTORY_FOLLOWUPS } from './chapters';
 import { makeChoice } from './helpers';
 import { RELATIONSHIP_EVENTS } from './relationships';
 import { ROUTINE_EVENTS } from './routine';
+import { FRONTLINE_EVENTS } from './frontline';
 
 export const ARRIVAL_EVENT: GameEvent = {
   id: 'arrival-at-front',
@@ -94,6 +95,7 @@ export const PLAY_EVENTS: GameEvent[] = [
 
 export const ALL_EVENTS: GameEvent[] = [
   ARRIVAL_EVENT,
+  ...FRONTLINE_EVENTS,
   ...PLAY_EVENTS,
   ...HISTORICAL_EVENTS,
 ];

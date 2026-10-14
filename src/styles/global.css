@@ -2389,6 +2389,41 @@ input:focus-visible {
   }
 }
 
+.frontline-panel {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid currentColor;
+  background: rgba(175, 151, 94, 0.09);
+  text-align: left;
+}
+
+.frontline-panel header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.frontline-panel p, .frontline-consequences p {
+  margin: 0.5rem 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.frontline-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.7rem;
+  margin: 0.8rem 0;
+}
+
+.frontline-facts dt { font-size: 0.75rem; opacity: 0.8; }
+.frontline-facts dd { margin: 0.2rem 0 0; font-weight: 700; font-size: 0.85rem; }
+.frontline-wounds, .frontline-warning { color: #853426; }
+.frontline-locked { margin-top: 1rem; }
+.frontline-locked > p { font-size: 0.8rem; }
+.frontline-locked .choice { margin-top: 0.4rem; opacity: 0.6; cursor: not-allowed; }
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

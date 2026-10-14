@@ -9,8 +9,11 @@ import { ZH_LETTERS, ZH_LETTER_EVENTS, ZH_NPCS } from './events-people.zh';
 import { ZH_RELATIONSHIP_EVENTS } from './events-people.zh';
 import { ZH_ROUTINE_EVENTS } from './events-routine.zh';
 import { ZH_HISTORICAL_EVENTS, ZH_HISTORY } from './history.zh';
+import { ZH_FRONTLINE_EVENTS } from '../data/events/frontline';
+import { FRONTLINE_NOTICE_TEXT } from '../game/frontline';
 
 export const ZH_EVENTS: Record<string, EventTranslation> = {
+  ...ZH_FRONTLINE_EVENTS,
   ...ZH_ROUTINE_EVENTS,
   ...ZH_COMBAT_EVENTS,
   ...ZH_CHAPTER_EVENTS,
@@ -199,6 +202,7 @@ function translatedCause(cause: string): string {
 
 export function localizeEndingCause(cause: string, language: Language): string {
   if (language === 'en') return cause;
+  if (cause === FRONTLINE_NOTICE_TEXT.playerDied.en) return FRONTLINE_NOTICE_TEXT.playerDied.zh;
   if (cause === 'The guns fell silent at eleven o’clock.') return '十一点整，枪炮声沉寂了。';
   if (cause === 'Died after accumulated wounds and illness.') return '因累积的伤势与疾病去世。';
   if (cause === 'Invalided home after prolonged illness and wounds.') return '因长期疾病与伤势退役回国。';
@@ -258,6 +262,9 @@ function translatedEpitaph(text: string): string {
 }
 
 export function localizeNpcEpitaph(text: string, language: Language): string {
+  if (language === 'zh' && text === 'Evacuated alive from the orchard road.') return '从果园路活着后送，离队养伤。';
+  if (language === 'zh' && text === 'Lost on the orchard road before medical aid.') return '在果园路失去生命，未能得到医疗救助。';
+  if (language === 'zh' && text === 'Wounded while covering the orchard road; evacuated for treatment.') return '掩护果园路任务时负伤，后送治疗。';
   return language === 'zh' ? translatedEpitaph(text) : text;
 }
 
@@ -298,6 +305,10 @@ export function localizeJournalEntry(entry: JournalEntry, state: GameState, lang
     : sourceEvent.choices.findIndex((choice) => entry.body.startsWith(choice.outcome));
   const sourceOutcome = sourceEvent.choices[choiceIndex]?.outcome ?? '';
   const translatedOutcome = translated.choices[choiceIndex]?.[2] ?? '';
+  if (entry.frontlineNotices) return {
+    ...entry, title: translated.title,
+    body: [entry.frontlineNotices.includes('playerDied') ? '你未能在伤势期限前完成这一行动。' : translatedOutcome, ...entry.frontlineNotices.map((notice) => FRONTLINE_NOTICE_TEXT[notice].zh)].filter(Boolean).join(' '),
+  };
   const remainder = sourceOutcome && entry.body.startsWith(sourceOutcome)
     ? entry.body.slice(sourceOutcome.length).trim()
     : entry.body;

@@ -4,6 +4,7 @@ import { createNpcStates, getNpc } from '../data/npcs';
 import { eventById, PLAY_EVENTS } from '../data/events';
 import { ARMISTICE_DATE, GAME_VERSION, INITIAL_STATS, START_DATE, WEATHER } from './constants';
 import { normalizeSeed, RandomCursor } from './random';
+import { frontlineChoices, FRONTLINE_NOTICE_TEXT, isFrontlineEvent, resolveFrontlineAction, startFrontline, type FrontlineForecast } from './frontline';
 import type {
   CharacterInput,
   CharacterProfile,
@@ -212,7 +213,8 @@ function substituteChoiceNpc(choice: EventChoice, state: GameState): EventChoice
 }
 
 export function availableChoices(state: GameState, event: GameEvent = getCurrentEvent(state)): EventChoice[] {
-  return event.choices
+  const choices = isFrontlineEvent(event.id) ? frontlineChoices(state, event.choices) : event.choices;
+  return choices
     .filter((choice) => requirementsMet(state, choice.requirements))
     .map((choice) => substituteChoiceNpc(choice, state));
 }
@@ -387,6 +389,7 @@ export interface ChoiceConsequencePreview {
   removedItems: string[];
   affectsStory: boolean;
   risk?: ChoiceRiskAssessment;
+  frontline?: FrontlineForecast;
 }
 
 interface CalculatedRisk {
@@ -581,6 +584,17 @@ export function getChoiceConsequencePreview(
 ): ChoiceConsequencePreview {
   const afterEffects = structuredClone(state);
   applyEffects(afterEffects, choice.effects);
+  let frontline: FrontlineForecast | undefined;
+  if (isFrontlineEvent(event.id) && state.frontline?.status === 'active') {
+    afterEffects.currentDate = advanceByAmount(state.currentDate, choice.advance, choice.advance.min);
+    const notices = resolveFrontlineAction(afterEffects, choice, state.currentDate);
+    frontline = {
+      minutes: (Date.parse(afterEffects.currentDate) - Date.parse(state.currentDate)) / 60_000,
+      dressingsDelta: afterEffects.frontline!.dressings - state.frontline.dressings,
+      smokeUsed: state.frontline.smoke && !afterEffects.frontline!.smoke,
+      notices, result: afterEffects.frontline!, date: afterEffects.currentDate,
+    };
+  }
   const stats = STAT_KEYS.map((key) => ({ key, delta: afterEffects.stats[key] - state.stats[key] }))
     .filter(({ delta }) => delta !== 0);
   const relationships = afterEffects.npcs.map((npc) => ({
@@ -631,7 +645,7 @@ export function getChoiceConsequencePreview(
     };
   }
 
-  return { stats, relationships, addedItems, removedItems, affectsStory, risk };
+  return { stats, relationships, addedItems, removedItems, affectsStory: affectsStory || Boolean(frontline), risk, frontline };
 }
 
 function npcIncident(state: GameState, rng: RandomCursor, npcId: string | undefined, directChance: number, messages: string[]): void {
@@ -880,6 +894,11 @@ function chooseFromCategory(state: GameState, events: GameEvent[], rng: RandomCu
 }
 
 export function selectNextEvent(state: GameState, rng: RandomCursor): GameEvent {
+  if (!state.frontline && state.turn === 1 && state.eventMemory?.['arrival-at-front']
+    && ['edward', 'george'].every((id) => state.npcs.find((npc) => npc.id === id)?.status === 'active')) {
+    startFrontline(state);
+  }
+  if (state.frontline?.status === 'active') return eventById(`frontline-${state.frontline.stage}`);
   if (Date.parse(state.currentDate) >= Date.parse(FINAL_HOUR)) return eventById('last-morning-fire');
   const pending = state.pendingHistoryIds[0];
   if (pending) return eventById(`history:${pending}`);
@@ -942,8 +961,9 @@ export function resolveChoice(input: GameState, choiceId: string): GameState {
   if (input.status !== 'playing') return input;
   const state = structuredClone(input);
   ensureNarrativeState(state);
-  ensureInterruptedStoryClosures(state);
+  if (state.frontline?.status !== 'active') ensureInterruptedStoryClosures(state);
   const event = getCurrentEvent(state);
+  const isFrontline = isFrontlineEvent(event.id) && state.frontline?.status === 'active';
   const choice = availableChoices(state, event).find((candidate) => candidate.id === choiceId);
   if (!choice) throw new Error(`Choice ${choiceId} is unavailable for event ${event.id}`);
 
@@ -961,12 +981,20 @@ export function resolveChoice(input: GameState, choiceId: string): GameState {
   const isFinalHourEvent = event.id === 'last-morning-fire';
   state.currentDate = isFinalHourEvent
     ? '1918-11-11T10:58:00.000Z'
-    : advanceGameTime(state.currentDate, choice.advance, rng);
-  applyTimePressure(state, previousDate, state.currentDate, event);
+    : isFrontline ? advanceByAmount(state.currentDate, choice.advance, choice.advance.min)
+      : advanceGameTime(state.currentDate, choice.advance, rng);
+  if (!isFrontline) applyTimePressure(state, previousDate, state.currentDate, event);
   const resolvedRisk = calculateExposure(state, choice);
-  resolveRisk(state, choice, rng, messages);
+  const frontlineNotices = isFrontline ? resolveFrontlineAction(state, choice, previousDate) : undefined;
+  if (frontlineNotices) {
+    messages.push(...frontlineNotices.map((notice) => FRONTLINE_NOTICE_TEXT[notice].en));
+    if (frontlineNotices.includes('playerDied')) {
+      messages[0] = 'You could not complete the action before your bleeding became fatal.';
+      endGame(state, 'wounds', FRONTLINE_NOTICE_TEXT.playerDied.en, choice.outcome, rng);
+    }
+  } else resolveRisk(state, choice, rng, messages);
   if (isFinalHourEvent && state.status === 'playing') state.currentDate = ARMISTICE_DATE;
-  if (state.status === 'playing') maybeRecoverNpc(state, rng, messages);
+  if (!isFrontline && state.status === 'playing') maybeRecoverNpc(state, rng, messages);
   triggerHistory(state, previousDate, state.currentDate);
 
   state.turn += 1;
@@ -984,6 +1012,7 @@ export function resolveChoice(input: GameState, choiceId: string): GameState {
     category: event.kind,
     eventId: event.id,
     choiceId: choice.id,
+    frontlineNotices,
     riskAssessment: resolvedRisk ? {
       exposurePercent: Math.round(resolvedRisk.exposure * 1000) / 10,
       factors: resolvedRisk.factors,
@@ -991,9 +1020,9 @@ export function resolveChoice(input: GameState, choiceId: string): GameState {
   });
   state.lastResolution = messages;
   state.recentEventIds = [event.id, ...state.recentEventIds.filter((id) => id !== event.id)].slice(0, 7);
-  state.weather = rng.pick(WEATHER);
+  if (!isFrontline) state.weather = rng.pick(WEATHER);
 
-  normaliseAfterTurn(state, rng, choice.outcome);
+  if (!isFrontline || state.frontline?.status === 'completed') normaliseAfterTurn(state, rng, choice.outcome);
   if (state.status === 'playing') state.currentEventId = selectNextEvent(state, rng).id;
   state.rngState = rng.state;
   state.updatedAt = state.currentDate;
